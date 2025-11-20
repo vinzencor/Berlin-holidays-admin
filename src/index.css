@@ -1,0 +1,125 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 32 20% 97%;
+    --foreground: 140 30% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 140 30% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 140 30% 15%;
+
+    --primary: 140 45% 35%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 35 40% 88%;
+    --secondary-foreground: 140 30% 15%;
+
+    --muted: 32 20% 93%;
+    --muted-foreground: 140 15% 45%;
+
+    --accent: 25 75% 60%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 32 15% 88%;
+    --input: 32 15% 88%;
+    --ring: 140 45% 35%;
+    
+    --nature-forest: 140 45% 35%;
+    --nature-forest-light: 140 35% 50%;
+    --nature-earth: 35 40% 65%;
+    --nature-terracotta: 16 70% 55%;
+    --nature-sky: 200 60% 75%;
+    
+    --status-available: 140 60% 45%;
+    --status-reserved: 45 95% 55%;
+    --status-occupied: 0 75% 55%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 140 25% 8%;
+    --foreground: 32 20% 95%;
+
+    --card: 140 20% 12%;
+    --card-foreground: 32 20% 95%;
+
+    --popover: 140 20% 12%;
+    --popover-foreground: 32 20% 95%;
+
+    --primary: 140 50% 50%;
+    --primary-foreground: 140 25% 8%;
+
+    --secondary: 140 15% 20%;
+    --secondary-foreground: 32 20% 95%;
+
+    --muted: 140 15% 20%;
+    --muted-foreground: 32 10% 65%;
+
+    --accent: 25 75% 50%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62.8% 45%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 140 15% 20%;
+    --input: 140 15% 20%;
+    --ring: 140 50% 50%;
+    
+    --nature-forest: 140 50% 45%;
+    --nature-forest-light: 140 40% 60%;
+    --nature-earth: 35 30% 50%;
+    --nature-terracotta: 16 60% 50%;
+    --nature-sky: 200 50% 65%;
+    
+    --status-available: 140 60% 45%;
+    --status-reserved: 45 95% 55%;
+    --status-occupied: 0 75% 55%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
