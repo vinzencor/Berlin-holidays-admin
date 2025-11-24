@@ -5,10 +5,10 @@ import { BookingsSection } from "@/components/admin/sections/BookingsSection";
 import { RoomAvailabilitySection } from "@/components/admin/sections/RoomAvailabilitySection";
 import { PricingPlansSection } from "@/components/admin/sections/PricingPlansSection";
 import { RatePlansSection } from "@/components/admin/sections/RatePlansSection";
-import { ServiceCategoriesSection } from "@/components/admin/sections/ServiceCategoriesSection";
 import { ServicesSection } from "@/components/admin/sections/ServicesSection";
-import { SpecialOffersSection } from "@/components/admin/sections/SpecialOffersSection";
-import { BlogPostsSection } from "@/components/admin/sections/BlogPostsSection";
+import { StaffSection } from "@/components/admin/sections/StaffSection";
+import { PMSDashboard } from "@/components/admin/sections/PMSDashboard";
+import { RMSDashboard } from "@/components/admin/sections/RMSDashboard";
 
 // Import the existing dashboard
 import Index from "./Index";
@@ -20,6 +20,16 @@ const Admin = () => {
     switch (currentSection) {
       case "dashboard":
         return <Index />;
+      case "staff":
+        return (
+          <div className="p-6">
+            <StaffSection />
+          </div>
+        );
+      case "pms":
+        return <PMSDashboard />;
+      case "rms":
+        return <RMSDashboard />;
       case "room-types":
         return (
           <div className="p-6">
@@ -50,28 +60,10 @@ const Admin = () => {
             <RatePlansSection />
           </div>
         );
-      case "service-categories":
-        return (
-          <div className="p-6">
-            <ServiceCategoriesSection />
-          </div>
-        );
       case "services":
         return (
           <div className="p-6">
             <ServicesSection />
-          </div>
-        );
-      case "special-offers":
-        return (
-          <div className="p-6">
-            <SpecialOffersSection />
-          </div>
-        );
-      case "blog-posts":
-        return (
-          <div className="p-6">
-            <BlogPostsSection />
           </div>
         );
       default:

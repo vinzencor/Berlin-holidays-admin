@@ -5,6 +5,7 @@ interface AuthContextType {
   login: (email: string, password: string) => boolean;
   logout: () => void;
   user: { email: string } | null;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,15 +21,22 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<{ email: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Check if user is already logged in on mount
   useEffect(() => {
     const storedAuth = localStorage.getItem('admin_auth');
     if (storedAuth) {
-      const authData = JSON.parse(storedAuth);
-      setIsAuthenticated(true);
-      setUser(authData.user);
+      try {
+        const authData = JSON.parse(storedAuth);
+        setIsAuthenticated(true);
+        setUser(authData.user);
+      } catch (error) {
+        console.error('Failed to parse auth data:', error);
+        localStorage.removeItem('admin_auth');
+      }
     }
+    setIsLoading(false);
   }, []);
 
   const login = (email: string, password: string): boolean => {
@@ -53,7 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout, user }}>
+    <AuthContext.Provider value={{ isAuthenticated, login, logout, user, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

@@ -15,6 +15,9 @@ import {
   Percent,
   LogOut,
   User,
+  Users,
+  TrendingUp,
+  Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,15 +31,15 @@ interface AdminLayoutProps {
 
 const navigationItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "staff", label: "Staff Management", icon: Users },
+  { id: "pms", label: "Property Management", icon: Building2 },
+  { id: "rms", label: "Revenue Management", icon: TrendingUp },
   { id: "room-types", label: "Room Types", icon: Home },
   { id: "bookings", label: "Bookings", icon: Calendar },
   { id: "availability", label: "Room Availability", icon: Calendar },
   { id: "pricing-plans", label: "Pricing Plans", icon: DollarSign },
   { id: "rate-plans", label: "Rate Plans", icon: Percent },
-  { id: "service-categories", label: "Service Categories", icon: Briefcase },
   { id: "services", label: "Services", icon: Settings },
-  { id: "special-offers", label: "Special Offers", icon: Tag },
-  { id: "blog-posts", label: "Blog Posts", icon: FileText },
 ];
 
 export const AdminLayout = ({ children, currentSection, onSectionChange }: AdminLayoutProps) => {
