@@ -15,54 +15,60 @@ export default function Login() {
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/admin', { replace: true });
-    }
+    if (isAuthenticated) navigate('/admin', { replace: true });
   }, [isAuthenticated, navigate]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate a small delay for better UX
     await new Promise(resolve => setTimeout(resolve, 500));
-
     const success = login(email, password);
-    
+
     if (success) {
       toast.success('Login successful! Welcome to Berlin Holidays Admin Panel');
       navigate('/admin');
     } else {
       toast.error('Invalid email or password. Please try again.');
     }
-    
+
     setIsLoading(false);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
-      <Card className="w-full max-w-md shadow-2xl">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#f9f3e8] via-white to-[#c49d71] p-4">
+      <Card className="w-full max-w-md shadow-2xl border border-[#c49d71]">
         <CardHeader className="space-y-3 text-center">
-          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-            <Hotel className="w-8 h-8 text-white" />
+
+          {/* LOGO AREA */}
+          <div className="mx-auto w-20 h-20 rounded-full overflow-hidden flex items-center justify-center bg-white shadow-md">
+            <img 
+              src="/public/images/Berlin_logo.png"
+              alt="Berlin Holidays Logo"
+              className="w-full h-full object-cover"
+            />
           </div>
-          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+
+          {/* TITLE */}
+          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-[#006938] to-[#c49d71] bg-clip-text text-transparent">
             Berlin Holidays
           </CardTitle>
-          <CardDescription className="text-base">
+          <CardDescription className="text-base text-[#006938] font-medium">
             Admin Panel Login
           </CardDescription>
         </CardHeader>
+
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+
+            {/* EMAIL */}
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium">
+              <Label htmlFor="email" className="text-sm font-medium text-[#006938]">
                 Email Address
               </Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-[#006938]" />
                 <Input
                   id="email"
                   type="email"
@@ -70,18 +76,19 @@ export default function Login() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="pl-10"
                   disabled={isLoading}
+                  className="pl-10 border-[#c49d71] focus-visible:ring-[#c49d71]"
                 />
               </div>
             </div>
-            
+
+            {/* PASSWORD */}
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium">
+              <Label htmlFor="password" className="text-sm font-medium text-[#006938]">
                 Password
               </Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-[#006938]" />
                 <Input
                   id="password"
                   type="password"
@@ -89,34 +96,28 @@ export default function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="pl-10"
                   disabled={isLoading}
+                  className="pl-10 border-[#c49d71] focus-visible:ring-[#c49d71]"
                 />
               </div>
             </div>
 
-            <Button 
-              type="submit" 
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-2 transition-all duration-200"
+            {/* BUTTON */}
+            <Button
+              type="submit"
+              className="w-full bg-[#006938] hover:bg-[#00552d] text-white font-semibold py-2 transition-all duration-200"
               disabled={isLoading}
             >
-              {isLoading ? (
-                <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Signing in...
-                </span>
-              ) : (
-                'Sign In'
-              )}
+              {isLoading ? "Signing in..." : "Sign In"}
             </Button>
 
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-xs text-blue-800 font-medium mb-1">Demo Credentials:</p>
-              <p className="text-xs text-blue-600">Email: berlinholidays@gmail.com</p>
-              <p className="text-xs text-blue-600">Password: 123456789</p>
+            {/* DEMO CREDS */}
+            <div className="mt-6 p-4 bg-[#f1e8dd] rounded-lg border border-[#c49d71]">
+              <p className="text-xs text-[#006938] font-medium mb-1">
+                Demo Credentials:
+              </p>
+              <p className="text-xs text-[#006938]">Email: berlinholidays@gmail.com</p>
+              <p className="text-xs text-[#006938]">Password: 123456789</p>
             </div>
           </form>
         </CardContent>
@@ -124,4 +125,3 @@ export default function Login() {
     </div>
   );
 }
-

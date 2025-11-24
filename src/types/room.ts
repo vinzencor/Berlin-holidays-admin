@@ -59,6 +59,7 @@ export interface RoomAvailability {
 }
 
 export interface RoomTypeWithBookings extends RoomType {
+  current_booking: any;
   active_bookings?: Booking[];
   booked_count?: number;
   available_count?: number;

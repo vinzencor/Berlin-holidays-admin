@@ -17,28 +17,31 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 140 30% 15%;
 
-    --primary: 140 45% 35%;
+    --primary: 153 100% 21%;
     --primary-foreground: 0 0% 98%;
 
-    --secondary: 35 40% 88%;
-    --secondary-foreground: 140 30% 15%;
+
+    --secondary: 31 41% 61%;
+    --secondary-foreground: 0 0% 15%;
 
     --muted: 32 20% 93%;
     --muted-foreground: 140 15% 45%;
 
-    --accent: 25 75% 60%;
-    --accent-foreground: 0 0% 98%;
+   --accent: 31 41% 61%;
+   --accent-foreground: 0 0% 98%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
     --border: 32 15% 88%;
     --input: 32 15% 88%;
-    --ring: 140 45% 35%;
+    --ring: 153 100% 21%; /* same as --primary */
+
     
-    --nature-forest: 140 45% 35%;
-    --nature-forest-light: 140 35% 50%;
-    --nature-earth: 35 40% 65%;
+    --nature-forest: 153 100% 21%;
+    --nature-forest-light: 153 40% 40%;
+    --nature-earth: 31 41% 61%;
+
     --nature-terracotta: 16 70% 55%;
     --nature-sky: 200 60% 75%;
     
