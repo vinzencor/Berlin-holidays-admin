@@ -35,16 +35,15 @@ export const FrontDeskDialog = ({ open, onOpenChange, operation, onSuccess }: Fr
   }, []);
 
   const fetchBookings = async () => {
-    const { data } = await supabase.from("bookings").select("id, guest_name").order("created_at", { ascending: false }).limit(50);
+    const { data } = await supabase.from("bookings").select("id, customer_name").order("created_at", { ascending: false }).limit(50);
     setBookings(data || []);
   };
 
   const fetchStaff = async () => {
     const { data } = await supabase
       .from("staff")
-      .select("id, first_name, last_name")
-      .eq("status", "active")
-      .eq("department", "front_desk");
+      .select("id, first_name, last_name, role, department")
+      .eq("status", "active");
     setStaff(data || []);
   };
 
@@ -52,13 +51,13 @@ export const FrontDeskDialog = ({ open, onOpenChange, operation, onSuccess }: Fr
     if (operation) {
       setFormData({
         operation_type: operation.operation_type || "check_in",
-        performed_at: operation.performed_at || new Date().toISOString().slice(0, 16),
+        performed_at: operation.performed_at ? new Date(operation.performed_at).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
         previous_room: operation.previous_room || "",
         new_room: operation.new_room || "",
         notes: operation.notes || "",
       });
       setSelectedBookingId(operation.booking_id || "");
-      setSelectedStaffId(operation.performed_by_staff_id || "");
+      setSelectedStaffId(operation.performed_by || "");
     } else {
       setFormData({
         operation_type: "check_in",
@@ -78,7 +77,8 @@ export const FrontDeskDialog = ({ open, onOpenChange, operation, onSuccess }: Fr
     const dataToSubmit = {
       ...formData,
       booking_id: selectedBookingId || null,
-      performed_by_staff_id: selectedStaffId || null,
+      performed_by: selectedStaffId || null,
+      performed_at: formData.performed_at || null,
     };
 
     if (operation) {
@@ -152,7 +152,7 @@ export const FrontDeskDialog = ({ open, onOpenChange, operation, onSuccess }: Fr
               <SelectContent>
                 {bookings.map((b) => (
                   <SelectItem key={b.id} value={b.id}>
-                    {b.guest_name}
+                    {b.customer_name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -168,7 +168,7 @@ export const FrontDeskDialog = ({ open, onOpenChange, operation, onSuccess }: Fr
               <SelectContent>
                 {staff.map((s) => (
                   <SelectItem key={s.id} value={s.id}>
-                    {s.first_name} {s.last_name}
+                    {s.first_name} {s.last_name} ({s.role})
                   </SelectItem>
                 ))}
               </SelectContent>

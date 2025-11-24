@@ -40,7 +40,7 @@ export const InvoiceDialog = ({ open, onOpenChange, invoice, onSuccess }: Invoic
   }, []);
 
   const fetchBookings = async () => {
-    const { data } = await supabase.from("bookings").select("id, guest_name").order("created_at", { ascending: false }).limit(50);
+    const { data } = await supabase.from("bookings").select("id, customer_name").order("created_at", { ascending: false }).limit(50);
     setBookings(data || []);
   };
 
@@ -195,7 +195,7 @@ export const InvoiceDialog = ({ open, onOpenChange, invoice, onSuccess }: Invoic
                 <SelectContent>
                   {bookings.map((b) => (
                     <SelectItem key={b.id} value={b.id}>
-                      {b.guest_name}
+                      {b.customer_name}
                     </SelectItem>
                   ))}
                 </SelectContent>

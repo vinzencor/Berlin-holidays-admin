@@ -129,12 +129,12 @@ export const PaymentManagementDialog = ({ room, open, onOpenChange }: PaymentMan
               Guest Information
             </h4>
             <div className="pl-6 space-y-1">
-              <p className="text-sm"><span className="font-medium">Name:</span> {booking.guest_name}</p>
-              {booking.guest_email && (
-                <p className="text-sm"><span className="font-medium">Email:</span> {booking.guest_email}</p>
+              <p className="text-sm"><span className="font-medium">Name:</span> {booking.customer_name}</p>
+              {booking.customer_email && (
+                <p className="text-sm"><span className="font-medium">Email:</span> {booking.customer_email}</p>
               )}
-              {booking.guest_phone && (
-                <p className="text-sm"><span className="font-medium">Phone:</span> {booking.guest_phone}</p>
+              {booking.customer_phone && (
+                <p className="text-sm"><span className="font-medium">Phone:</span> {booking.customer_phone}</p>
               )}
             </div>
           </div>

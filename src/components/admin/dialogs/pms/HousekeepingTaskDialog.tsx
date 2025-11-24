@@ -22,7 +22,7 @@ export const HousekeepingTaskDialog = ({ open, onOpenChange, task, onSuccess }: 
     priority: "normal",
     status: "pending",
     scheduled_time: "",
-    completed_time: "",
+    completed_at: "",
     notes: "",
   });
 
@@ -49,8 +49,8 @@ export const HousekeepingTaskDialog = ({ open, onOpenChange, task, onSuccess }: 
         task_type: task.task_type || "cleaning",
         priority: task.priority || "normal",
         status: task.status || "pending",
-        scheduled_time: task.scheduled_time || "",
-        completed_time: task.completed_time || "",
+        scheduled_time: task.scheduled_time ? new Date(task.scheduled_time).toISOString().slice(0, 16) : "",
+        completed_at: task.completed_at ? new Date(task.completed_at).toISOString().slice(0, 16) : "",
         notes: task.notes || "",
       });
       setSelectedStaffId(task.assigned_to || "");
@@ -61,7 +61,7 @@ export const HousekeepingTaskDialog = ({ open, onOpenChange, task, onSuccess }: 
         priority: "normal",
         status: "pending",
         scheduled_time: "",
-        completed_time: "",
+        completed_at: "",
         notes: "",
       });
       setSelectedStaffId("");
@@ -74,6 +74,8 @@ export const HousekeepingTaskDialog = ({ open, onOpenChange, task, onSuccess }: 
     const dataToSubmit = {
       ...formData,
       assigned_to: selectedStaffId || null,
+      scheduled_time: formData.scheduled_time || null,
+      completed_at: formData.completed_at || null,
     };
 
     if (task) {
@@ -195,12 +197,12 @@ export const HousekeepingTaskDialog = ({ open, onOpenChange, task, onSuccess }: 
               />
             </div>
             <div>
-              <Label htmlFor="completed_time">Completed Time</Label>
+              <Label htmlFor="completed_at">Completed Time</Label>
               <Input
-                id="completed_time"
+                id="completed_at"
                 type="datetime-local"
-                value={formData.completed_time}
-                onChange={(e) => setFormData({ ...formData, completed_time: e.target.value })}
+                value={formData.completed_at}
+                onChange={(e) => setFormData({ ...formData, completed_at: e.target.value })}
               />
             </div>
           </div>

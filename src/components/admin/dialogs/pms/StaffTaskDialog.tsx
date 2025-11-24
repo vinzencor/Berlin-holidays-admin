@@ -49,8 +49,8 @@ export const StaffTaskDialog = ({ open, onOpenChange, task, onSuccess }: StaffTa
         task_type: task.task_type || "general",
         priority: task.priority || "normal",
         status: task.status || "pending",
-        due_date: task.due_date || "",
-        completed_at: task.completed_at || "",
+        due_date: task.due_date ? new Date(task.due_date).toISOString().slice(0, 16) : "",
+        completed_at: task.completed_at ? new Date(task.completed_at).toISOString().slice(0, 16) : "",
       });
       setSelectedStaffId(task.assigned_to || "");
     } else {
@@ -73,6 +73,8 @@ export const StaffTaskDialog = ({ open, onOpenChange, task, onSuccess }: StaffTa
     const dataToSubmit = {
       ...formData,
       assigned_to: selectedStaffId || null,
+      due_date: formData.due_date || null,
+      completed_at: formData.completed_at || null,
     };
 
     if (task) {
