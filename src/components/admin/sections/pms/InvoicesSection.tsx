@@ -4,12 +4,54 @@ import { DataTable } from "../../DataTable";
 import { toast } from "sonner";
 import { InvoiceDialog } from "../../dialogs/pms/InvoiceDialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 
 export const InvoicesSection = () => {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
+
+  const handleDownload = (invoice: any) => {
+    // Create invoice content
+    const invoiceContent = `
+INVOICE
+========================================
+
+Invoice Number: ${invoice.invoice_number}
+Issue Date: ${new Date(invoice.issue_date).toLocaleDateString()}
+Due Date: ${new Date(invoice.due_date).toLocaleDateString()}
+
+----------------------------------------
+
+Total Amount: ₹${invoice.total_amount?.toFixed(2) || '0.00'}
+Paid Amount: ₹${invoice.paid_amount?.toFixed(2) || '0.00'}
+Balance: ₹${invoice.balance?.toFixed(2) || '0.00'}
+
+Payment Status: ${invoice.payment_status?.toUpperCase()}
+
+----------------------------------------
+
+Notes: ${invoice.notes || 'N/A'}
+
+========================================
+Generated on: ${new Date().toLocaleString()}
+    `.trim();
+
+    // Create blob and download
+    const blob = new Blob([invoiceContent], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `invoice-${invoice.invoice_number}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    toast.success(`Invoice ${invoice.invoice_number} downloaded`);
+  };
 
   const columns = [
     { key: "invoice_number", label: "Invoice #" },
@@ -30,8 +72,8 @@ export const InvoicesSection = () => {
       label: "Balance",
       render: (value: number) => `₹${value?.toFixed(2) || '0.00'}`
     },
-    { 
-      key: "payment_status", 
+    {
+      key: "payment_status",
       label: "Status",
       render: (value: string) => {
         const colors: any = {
@@ -42,6 +84,21 @@ export const InvoicesSection = () => {
         };
         return <Badge variant={colors[value] || "outline"}>{value}</Badge>;
       }
+    },
+    {
+      key: "actions",
+      label: "Download",
+      render: (_value: any, row: any) => (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => handleDownload(row)}
+          className="gap-2"
+        >
+          <Download className="h-4 w-4" />
+          Download
+        </Button>
+      )
     },
   ];
 
@@ -92,12 +149,14 @@ export const InvoicesSection = () => {
   return (
     <div>
       <DataTable
+        title="Invoices"
         columns={columns}
         data={data}
-        loading={loading}
+        isLoading={loading}
         onAdd={handleAdd}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        searchPlaceholder="Search invoices..."
       />
 
       <InvoiceDialog
