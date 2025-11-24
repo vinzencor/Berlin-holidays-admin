@@ -25,7 +25,7 @@ const App = () => (
               element={<Navigate to="/admin" replace />}
             />
             <Route
-              path="/admin"
+              path="/admin/*"
               element={
                 <ProtectedRoute>
                   <Admin />
