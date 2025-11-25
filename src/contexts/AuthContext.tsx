@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import type { User } from '@supabase/supabase-js';
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  login: (email: string, password: string) => boolean;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
-  user: { email: string } | null;
+  user: User | null;
   isLoading: boolean;
 }
 
@@ -20,44 +22,76 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<{ email: string } | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Check if user is already logged in on mount
   useEffect(() => {
-    const storedAuth = localStorage.getItem('admin_auth');
-    if (storedAuth) {
+    const checkSession = async () => {
       try {
-        const authData = JSON.parse(storedAuth);
-        setIsAuthenticated(true);
-        setUser(authData.user);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          setIsAuthenticated(true);
+          setUser(session.user);
+        }
       } catch (error) {
-        console.error('Failed to parse auth data:', error);
-        localStorage.removeItem('admin_auth');
+        console.error('Failed to check session:', error);
+      } finally {
+        setIsLoading(false);
       }
-    }
-    setIsLoading(false);
+    };
+
+    checkSession();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setIsAuthenticated(true);
+        setUser(session.user);
+      } else {
+        setIsAuthenticated(false);
+        setUser(null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const login = (email: string, password: string): boolean => {
-    // Hardcoded credentials
-    const ADMIN_EMAIL = 'berlinholidays@gmail.com';
-    const ADMIN_PASSWORD = '123456789';
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-      const userData = { email };
-      setIsAuthenticated(true);
-      setUser(userData);
-      localStorage.setItem('admin_auth', JSON.stringify({ user: userData }));
-      return true;
+      if (error) {
+        console.error('Login error:', error.message);
+        return false;
+      }
+
+      if (data.user) {
+        setIsAuthenticated(true);
+        setUser(data.user);
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Login exception:', error);
+      return false;
     }
-    return false;
   };
 
-  const logout = () => {
-    setIsAuthenticated(false);
-    setUser(null);
-    localStorage.removeItem('admin_auth');
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+      setIsAuthenticated(false);
+      setUser(null);
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   return (

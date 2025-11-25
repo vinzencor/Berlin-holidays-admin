@@ -10,8 +10,8 @@ import { StaffSection } from "@/components/admin/sections/StaffSection";
 import { PMSDashboard } from "@/components/admin/sections/PMSDashboard";
 import { RMSDashboard } from "@/components/admin/sections/RMSDashboard";
 
-// Import the existing dashboard
-import Index from "./Index";
+// Import the new calendar-based dashboard
+import NewDashboard from "./NewDashboard";
 
 const Admin = () => {
   const [currentSection, setCurrentSection] = useState("dashboard");
@@ -19,7 +19,7 @@ const Admin = () => {
   const renderSection = () => {
     switch (currentSection) {
       case "dashboard":
-        return <Index />;
+        return <NewDashboard />;
       case "staff":
         return (
           <div className="p-6">
@@ -67,7 +67,7 @@ const Admin = () => {
           </div>
         );
       default:
-        return <Index />;
+        return <NewDashboard />;
     }
   };
 

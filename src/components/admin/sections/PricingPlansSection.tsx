@@ -60,23 +60,12 @@ export const PricingPlansSection = () => {
 
   const columns = [
     { key: "name", label: "Name" },
-    { key: "description", label: "Description" },
+    { key: "duration", label: "Duration" },
+    { key: "includes", label: "Includes" },
     {
-      key: "base_price",
-      label: "Base Price",
-      render: (value: string) => `₹${parseFloat(value).toLocaleString()}`,
-    },
-    {
-      key: "weekend_price",
-      label: "Weekend Price",
-      render: (value: string) =>
-        value ? `₹${parseFloat(value).toLocaleString()}` : "-",
-    },
-    {
-      key: "holiday_price",
-      label: "Holiday Price",
-      render: (value: string) =>
-        value ? `₹${parseFloat(value).toLocaleString()}` : "-",
+      key: "price",
+      label: "Price",
+      render: (value: string) => value || "-",
     },
     {
       key: "is_active",

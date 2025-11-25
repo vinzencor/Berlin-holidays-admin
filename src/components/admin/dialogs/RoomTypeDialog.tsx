@@ -22,7 +22,6 @@ export const RoomTypeDialog = ({ open, onOpenChange, item, onSuccess }: RoomType
     capacity: "2",
     size: "",
     base_price: "",
-    total_rooms: "1",
     bed_type: "",
     category_label: "",
     is_active: true,
@@ -37,7 +36,6 @@ export const RoomTypeDialog = ({ open, onOpenChange, item, onSuccess }: RoomType
         capacity: item.capacity?.toString() || "2",
         size: item.size || "",
         base_price: item.base_price || "",
-        total_rooms: item.total_rooms?.toString() || "1",
         bed_type: item.bed_type || "",
         category_label: item.category_label || "",
         is_active: item.is_active ?? true,
@@ -50,7 +48,6 @@ export const RoomTypeDialog = ({ open, onOpenChange, item, onSuccess }: RoomType
         capacity: "2",
         size: "",
         base_price: "",
-        total_rooms: "1",
         bed_type: "",
         category_label: "",
         is_active: true,
@@ -64,7 +61,6 @@ export const RoomTypeDialog = ({ open, onOpenChange, item, onSuccess }: RoomType
     const dataToSave = {
       ...formData,
       capacity: parseInt(formData.capacity),
-      total_rooms: parseInt(formData.total_rooms),
     };
 
     const { error } = item
@@ -141,18 +137,8 @@ export const RoomTypeDialog = ({ open, onOpenChange, item, onSuccess }: RoomType
                 placeholder="e.g., 400 sq ft"
               />
             </div>
-            <div>
-              <Label htmlFor="total_rooms">Total Rooms</Label>
-              <Input
-                id="total_rooms"
-                type="number"
-                value={formData.total_rooms}
-                onChange={(e) => setFormData({ ...formData, total_rooms: e.target.value })}
-                required
-              />
-            </div>
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="base_price">Base Price (₹)</Label>
               <Input

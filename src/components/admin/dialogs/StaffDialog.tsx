@@ -30,6 +30,9 @@ export const StaffDialog = ({ open, onOpenChange, staff, onSuccess }: StaffDialo
     emergency_contact_name: "",
     emergency_contact_phone: "",
     notes: "",
+    access_role: "staff",
+    password: "",
+    create_login: false,
   });
 
   useEffect(() => {
@@ -48,6 +51,9 @@ export const StaffDialog = ({ open, onOpenChange, staff, onSuccess }: StaffDialo
         emergency_contact_name: staff.emergency_contact_name || "",
         emergency_contact_phone: staff.emergency_contact_phone || "",
         notes: staff.notes || "",
+        access_role: staff.access_role || "staff",
+        password: "",
+        create_login: false,
       });
     } else {
       setFormData({
@@ -64,6 +70,9 @@ export const StaffDialog = ({ open, onOpenChange, staff, onSuccess }: StaffDialo
         emergency_contact_name: "",
         emergency_contact_phone: "",
         notes: "",
+        access_role: "staff",
+        password: "",
+        create_login: false,
       });
     }
   }, [staff, open]);
@@ -71,36 +80,81 @@ export const StaffDialog = ({ open, onOpenChange, staff, onSuccess }: StaffDialo
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const dataToSubmit = {
-      ...formData,
-      salary: formData.salary ? parseFloat(formData.salary) : null,
-    };
+    try {
+      let userId = null;
 
-    if (staff) {
-      const { error } = await supabase
-        .from("staff")
-        .update(dataToSubmit)
-        .eq("id", staff.id);
+      // Create auth user if create_login is checked and it's a new staff member
+      if (!staff && formData.create_login && formData.password) {
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+          options: {
+            data: {
+              first_name: formData.first_name,
+              last_name: formData.last_name,
+              access_role: formData.access_role,
+            },
+          },
+        });
 
-      if (error) {
-        toast.error("Failed to update staff member");
-        console.error(error);
-      } else {
-        toast.success("Staff member updated successfully");
-        onSuccess();
-        onOpenChange(false);
+        if (authError) {
+          toast.error("Failed to create login credentials: " + authError.message);
+          console.error(authError);
+          return;
+        }
+
+        userId = authData.user?.id;
+        toast.success("Login credentials created successfully");
       }
-    } else {
-      const { error } = await supabase.from("staff").insert([dataToSubmit]);
 
-      if (error) {
-        toast.error("Failed to create staff member");
-        console.error(error);
+      const dataToSubmit = {
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        email: formData.email,
+        phone: formData.phone,
+        role: formData.role,
+        department: formData.department,
+        hire_date: formData.hire_date,
+        salary: formData.salary ? parseFloat(formData.salary) : null,
+        status: formData.status,
+        address: formData.address,
+        emergency_contact_name: formData.emergency_contact_name,
+        emergency_contact_phone: formData.emergency_contact_phone,
+        notes: formData.notes,
+        access_role: formData.access_role,
+        user_id: userId,
+        is_active: true,
+      };
+
+      if (staff) {
+        const { error } = await supabase
+          .from("staff")
+          .update(dataToSubmit)
+          .eq("id", staff.id);
+
+        if (error) {
+          toast.error("Failed to update staff member");
+          console.error(error);
+        } else {
+          toast.success("Staff member updated successfully");
+          onSuccess();
+          onOpenChange(false);
+        }
       } else {
-        toast.success("Staff member created successfully");
-        onSuccess();
-        onOpenChange(false);
+        const { error } = await supabase.from("staff").insert([dataToSubmit]);
+
+        if (error) {
+          toast.error("Failed to create staff member");
+          console.error(error);
+        } else {
+          toast.success("Staff member created successfully");
+          onSuccess();
+          onOpenChange(false);
+        }
       }
+    } catch (error: any) {
+      toast.error("An error occurred: " + error.message);
+      console.error(error);
     }
   };
 
@@ -263,6 +317,56 @@ export const StaffDialog = ({ open, onOpenChange, staff, onSuccess }: StaffDialo
               rows={3}
             />
           </div>
+
+          {/* Login Credentials Section */}
+          {!staff && (
+            <div className="border-t pt-4 space-y-4">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="create_login"
+                  checked={formData.create_login}
+                  onChange={(e) => setFormData({ ...formData, create_login: e.target.checked })}
+                  className="h-4 w-4"
+                />
+                <Label htmlFor="create_login" className="cursor-pointer">
+                  Create login credentials for this staff member
+                </Label>
+              </div>
+
+              {formData.create_login && (
+                <div className="grid grid-cols-2 gap-4 pl-6">
+                  <div>
+                    <Label htmlFor="access_role">Access Role *</Label>
+                    <Select
+                      value={formData.access_role}
+                      onValueChange={(value) => setFormData({ ...formData, access_role: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="staff">Staff (Limited Access)</SelectItem>
+                        <SelectItem value="super_admin">Super Admin (Full Access)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="password">Password *</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      required={formData.create_login}
+                      minLength={6}
+                      placeholder="Min 6 characters"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

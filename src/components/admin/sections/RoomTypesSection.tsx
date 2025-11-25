@@ -69,14 +69,22 @@ export const RoomTypesSection = () => {
       label: "Base Price",
       render: (value: string) => `₹${parseFloat(value).toLocaleString()}`,
     },
-    { key: "total_rooms", label: "Total Rooms" },
     { key: "bed_type", label: "Bed Type" },
     {
+      key: "status",
+      label: "Room Status",
+      render: (value: string) => (
+        <Badge variant={value === "available" ? "default" : value === "booked" ? "secondary" : "destructive"}>
+          {value || "available"}
+        </Badge>
+      ),
+    },
+    {
       key: "is_active",
-      label: "Status",
+      label: "Active",
       render: (value: boolean) => (
         <Badge variant={value ? "default" : "secondary"}>
-          {value ? "Active" : "Inactive"}
+          {value ? "Yes" : "No"}
         </Badge>
       ),
     },

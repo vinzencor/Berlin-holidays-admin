@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -29,23 +30,48 @@ interface AdminLayoutProps {
   onSectionChange: (section: string) => void;
 }
 
-const navigationItems = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "staff", label: "Staff Management", icon: Users },
-  { id: "pms", label: "Property Management", icon: Building2 },
-  { id: "rms", label: "Revenue Management", icon: TrendingUp },
-  { id: "room-types", label: "Room Types", icon: Home },
-  { id: "bookings", label: "Bookings", icon: Calendar },
-  { id: "availability", label: "Room Availability", icon: Calendar },
-  { id: "pricing-plans", label: "Pricing Plans", icon: DollarSign },
-  { id: "rate-plans", label: "Rate Plans", icon: Percent },
-  { id: "services", label: "Services", icon: Settings },
+// All navigation items for super admin
+const allNavigationItems = [
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["super_admin", "staff"] },
+  { id: "bookings", label: "Bookings", icon: Calendar, roles: ["super_admin", "staff"] },
+  { id: "pms", label: "Invoices", icon: FileText, roles: ["super_admin", "staff"] },
+  { id: "availability", label: "Room Availability", icon: Calendar, roles: ["super_admin", "staff"] },
+  { id: "staff", label: "Staff Management", icon: Users, roles: ["super_admin"] },
+  { id: "rms", label: "Revenue Management", icon: TrendingUp, roles: ["super_admin"] },
+  { id: "room-types", label: "Room Types", icon: Home, roles: ["super_admin"] },
+  { id: "pricing-plans", label: "Pricing Plans", icon: DollarSign, roles: ["super_admin"] },
+  // { id: "rate-plans", label: "Rate Plans", icon: Percent, roles: ["super_admin"] },
+  { id: "services", label: "Services", icon: Settings, roles: ["super_admin"] },
 ];
 
 export const AdminLayout = ({ children, currentSection, onSectionChange }: AdminLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [userRole, setUserRole] = useState<string>("staff");
   const { logout, user } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      if (user) {
+        const { data, error } = await supabase
+          .from("staff")
+          .select("access_role")
+          .eq("user_id", user.id)
+          .single();
+
+        if (data && !error) {
+          setUserRole(data.access_role || "staff");
+        }
+      }
+    };
+
+    fetchUserRole();
+  }, [user]);
+
+  // Filter navigation items based on user role
+  const navigationItems = allNavigationItems.filter((item) =>
+    item.roles.includes(userRole)
+  );
 
   const handleLogout = () => {
     logout();

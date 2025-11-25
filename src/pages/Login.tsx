@@ -23,17 +23,21 @@ export default function Login() {
     e.preventDefault();
     setIsLoading(true);
 
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const success = login(email, password);
+    try {
+      const success = await login(email, password);
 
-    if (success) {
-      toast.success('Login successful! Welcome to Berlin Holidays Admin Panel');
-      navigate('/admin');
-    } else {
-      toast.error('Invalid email or password. Please try again.');
+      if (success) {
+        toast.success('Login successful! Welcome to Berlin Holidays Admin Panel');
+        navigate('/admin');
+      } else {
+        toast.error('Invalid email or password. Please try again.');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      toast.error('An error occurred during login. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   return (
@@ -113,11 +117,17 @@ export default function Login() {
 
             {/* DEMO CREDS */}
             <div className="mt-6 p-4 bg-[#f1e8dd] rounded-lg border border-[#c49d71]">
-              <p className="text-xs text-[#006938] font-medium mb-1">
-                Demo Credentials:
+              <p className="text-xs text-[#006938] font-medium mb-2">
+                Super Admin Credentials:
               </p>
-              <p className="text-xs text-[#006938]">Email: berlinholidays@gmail.com</p>
-              <p className="text-xs text-[#006938]">Password: 123456789</p>
+              <div className="space-y-1">
+                <p className="text-xs text-[#006938]">Email: berlinholidays@gmail.com</p>
+                <p className="text-xs text-[#006938]">Password: 123456</p>
+              </div>
+              <div className="mt-3 pt-3 border-t border-[#c49d71] space-y-1">
+                <p className="text-xs text-[#006938]">Email: rahulpradeepan77@gmail.com</p>
+                <p className="text-xs text-[#006938]">Password: 987654321</p>
+              </div>
             </div>
           </form>
         </CardContent>
