@@ -56,12 +56,18 @@ export const CustomerDetailsDialog = ({ open, onOpenChange, booking }: CustomerD
                     <p className="font-semibold">{booking.customer_phone}</p>
                   </div>
                 </div>
-                {booking.customer_address && (
+                {(booking.home_address || booking.city || booking.state || booking.country || booking.pin_code) && (
                   <div className="flex items-start gap-3">
                     <MapPin className="w-4 h-4 text-[#006938] mt-1" />
                     <div>
                       <p className="text-sm text-gray-600">Address</p>
-                      <p className="font-semibold">{booking.customer_address}</p>
+                      <div className="font-semibold">
+                        {booking.home_address && <p>{booking.home_address}</p>}
+                        {(booking.city || booking.state || booking.pin_code) && (
+                          <p>{[booking.city, booking.state, booking.pin_code].filter(Boolean).join(", ")}</p>
+                        )}
+                        {booking.country && <p>{booking.country}</p>}
+                      </div>
                     </div>
                   </div>
                 )}

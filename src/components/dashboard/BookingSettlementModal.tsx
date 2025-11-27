@@ -24,6 +24,11 @@ interface Booking {
   customer_email: string;
   customer_phone: string;
   customer_address?: string;
+  home_address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  pin_code?: string;
   check_in_date: string;
   check_out_date: string;
   room_name: string;
@@ -50,17 +55,21 @@ export const BookingSettlementModal = ({
   onSuccess,
 }: BookingSettlementModalProps) => {
   const [discountAmount, setDiscountAmount] = useState(0);
-  const [paidAmount, setPaidAmount] = useState(0);
+  const [additionalPayment, setAdditionalPayment] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (booking) {
+    if (booking && open) {
       setDiscountAmount(booking.discount_amount || 0);
-      setPaidAmount(booking.paid_amount || 0);
+      // Calculate remaining balance and auto-populate
+      const baseAmt = booking.total_amount + (booking.discount_amount || 0);
+      const finalAmt = baseAmt - (booking.discount_amount || 0);
+      const remainingBalance = finalAmt - (booking.paid_amount || 0);
+      setAdditionalPayment(remainingBalance > 0 ? remainingBalance : 0);
     }
-  }, [booking]);
+  }, [booking, open]);
 
   if (!booking) return null;
 
@@ -71,7 +80,9 @@ export const BookingSettlementModal = ({
 
   const baseAmount = booking.total_amount + (booking.discount_amount || 0);
   const finalAmount = baseAmount - discountAmount;
-  const balance = finalAmount - paidAmount;
+  const alreadyPaid = booking.paid_amount || 0;
+  const totalPaidAmount = alreadyPaid + additionalPayment;
+  const balance = finalAmount - totalPaidAmount;
 
   const handleSettlePayment = async () => {
     setLoading(true);
@@ -83,8 +94,8 @@ export const BookingSettlementModal = ({
         .from("bookings")
         .update({
           discount_amount: discountAmount,
-          paid_amount: paidAmount,
-          payment_status: isFullyPaid ? "paid" : paidAmount > 0 ? "partial" : "pending",
+          paid_amount: totalPaidAmount,
+          payment_status: isFullyPaid ? "paid" : totalPaidAmount > 0 ? "partial" : "pending",
           is_settled: isFullyPaid,
           settled_at: isFullyPaid ? new Date().toISOString() : null,
           total_amount: finalAmount,
@@ -151,6 +162,11 @@ export const BookingSettlementModal = ({
           customer_email: booking.customer_email,
           customer_phone: booking.customer_phone,
           customer_address: booking.customer_address || "",
+          home_address: booking.home_address || "",
+          city: booking.city || "",
+          state: booking.state || "",
+          country: booking.country || "",
+          pin_code: booking.pin_code || "",
           room_name: booking.room_name,
           room_address: "Berlin Holidays Resort, Wayanad, Kerala",
           check_in_date: booking.check_in_date,
@@ -160,9 +176,9 @@ export const BookingSettlementModal = ({
           discount_amount: discountAmount,
           tax_amount: 0,
           total_amount: finalAmount,
-          paid_amount: paidAmount,
+          paid_amount: totalPaidAmount,
           balance: balance,
-          payment_status: balance <= 0 ? "paid" : paidAmount > 0 ? "partial" : "unpaid",
+          payment_status: balance <= 0 ? "paid" : totalPaidAmount > 0 ? "partial" : "unpaid",
           payment_method: paymentMethod,
           notes: notes,
           issue_date: new Date().toISOString().split("T")[0],
@@ -229,8 +245,20 @@ export const BookingSettlementModal = ({
     doc.text(booking.customer_name, 20, 87);
     doc.text(booking.customer_email, 20, 94);
     doc.text(booking.customer_phone, 20, 101);
-    if (booking.customer_address) {
-      doc.text(booking.customer_address, 20, 108);
+
+    let yPos = 108;
+    if (booking.home_address) {
+      doc.text(booking.home_address, 20, yPos);
+      yPos += 7;
+    }
+    if (booking.city || booking.state || booking.pin_code) {
+      const cityStatePin = [booking.city, booking.state, booking.pin_code].filter(Boolean).join(", ");
+      doc.text(cityStatePin, 20, yPos);
+      yPos += 7;
+    }
+    if (booking.country) {
+      doc.text(booking.country, 20, yPos);
+      yPos += 7;
     }
 
     // Booking Details
@@ -253,7 +281,7 @@ export const BookingSettlementModal = ({
       ],
       foot: [
         ["", "", "Subtotal", `₹${finalAmount.toFixed(2)}`],
-        ["", "", "Paid Amount", `₹${paidAmount.toFixed(2)}`],
+        ["", "", "Paid Amount", `₹${totalPaidAmount.toFixed(2)}`],
         ["", "", "Balance Due", `₹${balance.toFixed(2)}`],
       ],
       theme: "striped",
@@ -342,20 +370,43 @@ export const BookingSettlementModal = ({
                 />
               </div>
               <div>
-                <Label htmlFor="paidAmount">Paid Amount (₹)</Label>
+                <Label htmlFor="alreadyPaid">Already Paid (₹)</Label>
                 <Input
-                  id="paidAmount"
+                  id="alreadyPaid"
                   type="number"
-                  value={paidAmount}
-                  onChange={(e) => setPaidAmount(parseFloat(e.target.value) || 0)}
+                  value={alreadyPaid}
+                  disabled
+                  className="bg-muted"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="additionalPayment">Additional Payment (₹)</Label>
+                <Input
+                  id="additionalPayment"
+                  type="number"
+                  value={additionalPayment}
+                  onChange={(e) => setAdditionalPayment(parseFloat(e.target.value) || 0)}
                   min="0"
-                  max={finalAmount}
+                  max={finalAmount - alreadyPaid}
+                />
+              </div>
+              <div>
+                <Label htmlFor="totalPaid">Total Paid (₹)</Label>
+                <Input
+                  id="totalPaid"
+                  type="number"
+                  value={totalPaidAmount}
+                  disabled
+                  className="bg-muted font-semibold"
                 />
               </div>
             </div>
 
             <div>
-              <Label htmlFor="balance">Balance</Label>
+              <Label htmlFor="balance">Remaining Balance</Label>
               <Input
                 id="balance"
                 type="number"

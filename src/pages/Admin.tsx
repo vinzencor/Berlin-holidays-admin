@@ -9,6 +9,10 @@ import { ServicesSection } from "@/components/admin/sections/ServicesSection";
 import { StaffSection } from "@/components/admin/sections/StaffSection";
 import { PMSDashboard } from "@/components/admin/sections/PMSDashboard";
 import { RMSDashboard } from "@/components/admin/sections/RMSDashboard";
+import { ReportsSection } from "@/components/admin/sections/ReportsSection";
+import { ExpensesSection } from "@/components/admin/sections/ExpensesSection";
+import { PricingCalendarSection } from "@/components/admin/sections/PricingCalendarSection";
+import ReferencesSection from "@/components/admin/sections/ReferencesSection";
 
 // Import the new calendar-based dashboard
 import NewDashboard from "./NewDashboard";
@@ -30,12 +34,6 @@ const Admin = () => {
         return <PMSDashboard />;
       case "rms":
         return <RMSDashboard />;
-      case "room-types":
-        return (
-          <div className="p-6">
-            <RoomTypesSection />
-          </div>
-        );
       case "bookings":
         return (
           <div className="p-6">
@@ -64,6 +62,32 @@ const Admin = () => {
         return (
           <div className="p-6">
             <ServicesSection />
+          </div>
+        );
+      case "reports":
+        return <ReportsSection />;
+      case "rooms":
+        return (
+          <div className="p-6">
+            <RoomTypesSection />
+          </div>
+        );
+      case "expenses":
+        return (
+          <div className="p-6">
+            <ExpensesSection />
+          </div>
+        );
+      case "pricing-calendar":
+        return (
+          <div className="p-6">
+            <PricingCalendarSection />
+          </div>
+        );
+      case "references":
+        return (
+          <div className="p-6">
+            <ReferencesSection />
           </div>
         );
       default:

@@ -5,7 +5,9 @@ import { toast } from "sonner";
 import { InvoiceDialog } from "../../dialogs/pms/InvoiceDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Download, Calendar } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
@@ -15,6 +17,8 @@ export const InvoicesSection = () => {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   const handleDownload = (invoice: any) => {
     try {
@@ -49,7 +53,21 @@ export const InvoicesSection = () => {
       doc.text(invoice.customer_name || "N/A", 20, 97);
       if (invoice.customer_email) doc.text(invoice.customer_email, 20, 104);
       if (invoice.customer_phone) doc.text(invoice.customer_phone, 20, 111);
-      if (invoice.customer_address) doc.text(invoice.customer_address, 20, 118);
+
+      let yPos = 118;
+      if (invoice.home_address) {
+        doc.text(invoice.home_address, 20, yPos);
+        yPos += 7;
+      }
+      if (invoice.city || invoice.state || invoice.pin_code) {
+        const cityStatePin = [invoice.city, invoice.state, invoice.pin_code].filter(Boolean).join(", ");
+        doc.text(cityStatePin, 20, yPos);
+        yPos += 7;
+      }
+      if (invoice.country) {
+        doc.text(invoice.country, 20, yPos);
+        yPos += 7;
+      }
 
       // Booking Details (if available)
       if (invoice.room_name) {
@@ -175,10 +193,19 @@ export const InvoicesSection = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    const { data: invoiceData, error } = await supabase
+    let query = supabase
       .from("invoices")
-      .select("*")
-      .order("issue_date", { ascending: false });
+      .select("*");
+
+    // Apply date filters if set
+    if (startDate) {
+      query = query.gte("issue_date", startDate);
+    }
+    if (endDate) {
+      query = query.lte("issue_date", endDate);
+    }
+
+    const { data: invoiceData, error } = await query.order("issue_date", { ascending: false });
 
     if (error) {
       toast.error("Failed to fetch invoices");
@@ -191,7 +218,7 @@ export const InvoicesSection = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [startDate, endDate]);
 
   const handleAdd = () => {
     setSelectedItem(null);
@@ -219,6 +246,43 @@ export const InvoicesSection = () => {
 
   return (
     <div>
+      <div className="mb-4 flex gap-4 items-end">
+        <div className="flex-1">
+          <Label htmlFor="invoice-start-date" className="flex items-center gap-2">
+            <Calendar className="w-4 h-4" />
+            Start Date
+          </Label>
+          <Input
+            id="invoice-start-date"
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="mt-1"
+          />
+        </div>
+        <div className="flex-1">
+          <Label htmlFor="invoice-end-date" className="flex items-center gap-2">
+            <Calendar className="w-4 h-4" />
+            End Date
+          </Label>
+          <Input
+            id="invoice-end-date"
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="mt-1"
+          />
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => {
+            setStartDate("");
+            setEndDate("");
+          }}
+        >
+          Clear Filters
+        </Button>
+      </div>
       <DataTable
         title="Invoices"
         columns={columns}

@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { X } from "lucide-react";
 
 interface RoomTypeDialogProps {
   open: boolean;
@@ -26,6 +27,8 @@ export const RoomTypeDialog = ({ open, onOpenChange, item, onSuccess }: RoomType
     category_label: "",
     is_active: true,
   });
+  const [images, setImages] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (item) {
@@ -40,6 +43,7 @@ export const RoomTypeDialog = ({ open, onOpenChange, item, onSuccess }: RoomType
         category_label: item.category_label || "",
         is_active: item.is_active ?? true,
       });
+      setImages(item.images || []);
     } else {
       setFormData({
         name: "",
@@ -52,8 +56,51 @@ export const RoomTypeDialog = ({ open, onOpenChange, item, onSuccess }: RoomType
         category_label: "",
         is_active: true,
       });
+      setImages([]);
     }
-  }, [item]);
+  }, [item, open]);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    const uploadedUrls: string[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `room-images/${fileName}`;
+
+      try {
+        const { error: uploadError } = await supabase.storage
+          .from('room-images')
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('room-images')
+          .getPublicUrl(filePath);
+
+        uploadedUrls.push(publicUrl);
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        toast.error(`Failed to upload ${file.name}`);
+      }
+    }
+
+    setImages([...images, ...uploadedUrls]);
+    setUploading(false);
+    if (uploadedUrls.length > 0) {
+      toast.success(`${uploadedUrls.length} image(s) uploaded successfully`);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setImages(images.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,6 +108,7 @@ export const RoomTypeDialog = ({ open, onOpenChange, item, onSuccess }: RoomType
     const dataToSave = {
       ...formData,
       capacity: parseInt(formData.capacity),
+      images: images,
     };
 
     const { error } = item
@@ -167,11 +215,46 @@ export const RoomTypeDialog = ({ open, onOpenChange, item, onSuccess }: RoomType
               />
             </div>
           </div>
+
+          <div>
+            <Label>Room Images</Label>
+            <div className="mt-2">
+              <Input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageUpload}
+                disabled={uploading}
+                className="mb-4"
+              />
+              {uploading && <p className="text-sm text-muted-foreground">Uploading...</p>}
+
+              <div className="grid grid-cols-4 gap-4 mt-4">
+                {images.map((url, index) => (
+                  <div key={index} className="relative group">
+                    <img
+                      src={url}
+                      alt={`Room ${index + 1}`}
+                      className="w-full h-24 object-cover rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
           <div className="flex gap-2 justify-end">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit">Save</Button>
+            <Button type="submit" disabled={uploading}>Save</Button>
           </div>
         </form>
       </DialogContent>

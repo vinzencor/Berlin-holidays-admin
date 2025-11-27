@@ -71,10 +71,10 @@ const NewDashboard = () => {
 
         if (bookingsError) throw bookingsError;
 
-        // Get all room types
+        // Get all room types (each room type is a unique room)
         const { data: roomTypes, error: roomTypesError } = await supabase
           .from("room_types")
-          .select("total_rooms");
+          .select("id, is_active");
 
         if (roomTypesError) throw roomTypesError;
 
@@ -98,11 +98,8 @@ const NewDashboard = () => {
           0
         );
 
-        // Calculate available rooms
-        const totalRooms = roomTypes?.reduce(
-          (sum, rt) => sum + (rt.total_rooms || 0),
-          0
-        ) || 0;
+        // Calculate available rooms (each room type is one room)
+        const totalRooms = roomTypes?.filter(rt => rt.is_active).length || 0;
 
         // Count booked rooms (active bookings)
         const bookedRooms = activeBookings.length;

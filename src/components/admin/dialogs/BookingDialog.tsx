@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Upload, X, Download } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { eachDayOfInterval, format as formatDate } from "date-fns";
 
 interface BookingDialogProps {
   open: boolean;
@@ -26,6 +27,11 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
     customer_email: "",
     customer_phone: "",
     customer_address: "",
+    home_address: "",
+    city: "",
+    state: "",
+    country: "",
+    pin_code: "",
     check_in_date: "",
     check_out_date: "",
     number_of_adults: "2",
@@ -37,6 +43,11 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
     payment_status: "pending",
     status: "confirmed",
     special_requests: "",
+    booking_type: "walk-in",
+    reference_id: "",
+    reference_name: "",
+    reference_details: "",
+    gst_amount: "0",
   });
 
   const [availableRooms, setAvailableRooms] = useState<any[]>([]);
@@ -45,11 +56,52 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
   const [uploadedProofUrls, setUploadedProofUrls] = useState<string[]>([]);
   const [roomPrice, setRoomPrice] = useState(0);
   const [numberOfNights, setNumberOfNights] = useState(1);
+  const [bookedDates, setBookedDates] = useState<string[]>([]);
+  const [references, setReferences] = useState<any[]>([]);
 
-  // Fetch available room types
+  // Helper function to calculate per-night price for a room considering date-specific pricing
+  const calculateRoomPricePerNight = async (roomId: string, checkInDate: string, checkOutDate: string) => {
+    if (!checkInDate || !checkOutDate) return 0;
+
+    const checkIn = new Date(checkInDate);
+    const checkOut = new Date(checkOutDate);
+
+    // Get all dates in the range (excluding checkout date)
+    const dates = eachDayOfInterval({ start: checkIn, end: new Date(checkOut.getTime() - 1) });
+
+    // Fetch date-specific pricing for this room
+    const { data: dateSpecificPrices, error } = await supabase
+      .from("date_specific_pricing")
+      .select("*")
+      .eq("room_type_id", roomId)
+      .gte("date", formatDate(checkIn, "yyyy-MM-dd"))
+      .lte("date", formatDate(checkOut, "yyyy-MM-dd"));
+
+    if (error) {
+      console.error("Error fetching date-specific pricing:", error);
+    }
+
+    // Get the room's base price
+    const room = availableRooms.find(r => r.id === roomId);
+    const basePrice = room?.base_price || 0;
+
+    // Calculate total price for all nights
+    let totalPrice = 0;
+    dates.forEach(date => {
+      const dateStr = formatDate(date, "yyyy-MM-dd");
+      const specificPrice = dateSpecificPrices?.find(p => p.date === dateStr);
+      totalPrice += specificPrice ? parseFloat(specificPrice.price) : parseFloat(basePrice);
+    });
+
+    // Return AVERAGE per-night price (total / number of nights)
+    return dates.length > 0 ? totalPrice / dates.length : basePrice;
+  };
+
+  // Fetch available room types and references
   useEffect(() => {
-    const fetchAvailableRooms = async () => {
+    const fetchData = async () => {
       try {
+        // Fetch rooms
         const { data: roomsData, error: roomsError } = await supabase
           .from("room_types")
           .select("*")
@@ -58,39 +110,105 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
           .order("name");
 
         if (roomsError) throw roomsError;
-
         setAvailableRooms(roomsData || []);
+
+        // Fetch references
+        const { data: referencesData, error: referencesError } = await supabase
+          .from("booking_references")
+          .select("*")
+          .eq("is_active", true)
+          .order("name");
+
+        if (referencesError) throw referencesError;
+        setReferences(referencesData || []);
       } catch (error: any) {
-        console.error("Error fetching available rooms:", error);
-        toast.error("Failed to load available rooms: " + error.message);
+        console.error("Error fetching data:", error);
+        toast.error("Failed to load data: " + error.message);
       }
     };
 
     if (open) {
-      fetchAvailableRooms();
+      fetchData();
       setSelectedRooms([]); // Reset selected rooms when dialog opens
     }
   }, [open]);
 
-  // Calculate number of nights when dates change
+  // Fetch booked dates for availability checking
+  useEffect(() => {
+    const fetchBookedDates = async () => {
+      if (!formData.check_in_date) return;
+
+      try {
+        const { data: bookings, error } = await supabase
+          .from("bookings")
+          .select("check_in_date, check_out_date, room_id")
+          .neq("status", "cancelled");
+
+        if (error) throw error;
+
+        const bookedDatesList: string[] = [];
+        bookings?.forEach((booking) => {
+          const checkIn = new Date(booking.check_in_date);
+          const checkOut = new Date(booking.check_out_date);
+          const dates = eachDayOfInterval({ start: checkIn, end: checkOut });
+          dates.forEach((date) => {
+            bookedDatesList.push(formatDate(date, "yyyy-MM-dd"));
+          });
+        });
+
+        setBookedDates(bookedDatesList);
+      } catch (error) {
+        console.error("Error fetching booked dates:", error);
+      }
+    };
+
+    if (open) {
+      fetchBookedDates();
+    }
+  }, [open, formData.check_in_date]);
+
+  // Calculate number of nights when dates change (FIXED: check-in to check-out = nights between)
   useEffect(() => {
     if (formData.check_in_date && formData.check_out_date) {
       const checkIn = new Date(formData.check_in_date);
       const checkOut = new Date(formData.check_out_date);
-      const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
+      // Calculate nights: difference in days (e.g., 28th to 29th = 1 night)
+      const nights = Math.floor((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
       setNumberOfNights(nights > 0 ? nights : 1);
     }
   }, [formData.check_in_date, formData.check_out_date]);
 
-  // Calculate total amount when room, nights, or discount changes
+  // Recalculate room prices when dates change (considering date-specific pricing)
   useEffect(() => {
-    if (roomPrice > 0 && numberOfNights > 0) {
-      const subtotal = roomPrice * numberOfNights;
+    const recalculatePrices = async () => {
+      if (selectedRooms.length > 0 && formData.check_in_date && formData.check_out_date) {
+        let totalPerNightPrice = 0;
+        for (const room of selectedRooms) {
+          const roomPerNightPrice = await calculateRoomPricePerNight(
+            room.id,
+            formData.check_in_date,
+            formData.check_out_date
+          );
+          totalPerNightPrice += roomPerNightPrice;
+        }
+        setRoomPrice(totalPerNightPrice); // Store combined per-night rate
+      }
+    };
+
+    recalculatePrices();
+  }, [formData.check_in_date, formData.check_out_date, selectedRooms]);
+
+  // Calculate total amount when room price or discount changes (GST is now editable)
+  useEffect(() => {
+    if (roomPrice > 0) {
       const discount = parseFloat(formData.discount_amount) || 0;
-      const total = subtotal - discount;
-      setFormData(prev => ({ ...prev, total_amount: total.toString() }));
+      const baseAmount = roomPrice - discount;
+      setFormData(prev => ({
+        ...prev,
+        total_amount: baseAmount.toFixed(2),
+      }));
     }
-  }, [roomPrice, numberOfNights, formData.discount_amount]);
+  }, [roomPrice, formData.discount_amount]);
 
   useEffect(() => {
     if (item) {
@@ -101,6 +219,11 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
         customer_email: item.customer_email || "",
         customer_phone: item.customer_phone || "",
         customer_address: item.customer_address || "",
+        home_address: item.home_address || "",
+        city: item.city || "",
+        state: item.state || "",
+        country: item.country || "",
+        pin_code: item.pin_code || "",
         check_in_date: item.check_in_date || "",
         check_out_date: item.check_out_date || "",
         number_of_adults: item.number_of_adults?.toString() || "2",
@@ -112,6 +235,11 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
         payment_status: item.payment_status || "pending",
         status: item.status || "confirmed",
         special_requests: item.special_requests || "",
+        booking_type: item.booking_type || "walk-in",
+        reference_id: item.reference_id || "",
+        reference_name: item.reference_name || "",
+        reference_details: item.reference_details || "",
+        gst_amount: item.gst_amount || "0",
       });
       if (item.customer_proofs) {
         setUploadedProofUrls(item.customer_proofs);
@@ -124,6 +252,11 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
         customer_email: "",
         customer_phone: "",
         customer_address: "",
+        home_address: "",
+        city: "",
+        state: "",
+        country: "",
+        pin_code: "",
         check_in_date: "",
         check_out_date: "",
         number_of_adults: "2",
@@ -135,13 +268,18 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
         payment_status: "pending",
         status: "confirmed",
         special_requests: "",
+        booking_type: "walk-in",
+        reference_id: "",
+        reference_name: "",
+        reference_details: "",
+        gst_amount: "0",
       });
       setCustomerProofs([]);
       setUploadedProofUrls([]);
     }
   }, [item]);
 
-  const handleAddRoom = (roomId: string) => {
+  const handleAddRoom = async (roomId: string) => {
     const selectedRoom = availableRooms.find(r => r.id === roomId);
     if (selectedRoom && !selectedRooms.find(r => r.id === roomId)) {
       // Allow multiple room selection
@@ -157,9 +295,23 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
         }));
       }
 
-      // Calculate total price for all selected rooms
-      const totalPrice = updatedRooms.reduce((sum, room) => sum + Number(room.base_price), 0);
-      setRoomPrice(totalPrice);
+      // Calculate total PER-NIGHT price for all selected rooms (considering date-specific pricing)
+      if (formData.check_in_date && formData.check_out_date) {
+        let totalPerNightPrice = 0;
+        for (const room of updatedRooms) {
+          const roomPerNightPrice = await calculateRoomPricePerNight(
+            room.id,
+            formData.check_in_date,
+            formData.check_out_date
+          );
+          totalPerNightPrice += roomPerNightPrice;
+        }
+        setRoomPrice(totalPerNightPrice); // Store combined per-night rate
+      } else {
+        // Fallback to base price if dates not selected
+        const totalPerNightPrice = updatedRooms.reduce((sum, room) => sum + Number(room.base_price), 0);
+        setRoomPrice(totalPerNightPrice);
+      }
     }
   };
 
@@ -256,8 +408,20 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
     doc.text(`Name: ${formData.customer_name}`, 20, 83);
     doc.text(`Email: ${formData.customer_email}`, 20, 90);
     doc.text(`Phone: ${formData.customer_phone}`, 20, 97);
-    if (formData.customer_address) {
-      doc.text(`Address: ${formData.customer_address}`, 20, 104);
+
+    let yPos = 104;
+    if (formData.home_address) {
+      doc.text(`Address: ${formData.home_address}`, 20, yPos);
+      yPos += 7;
+    }
+    if (formData.city || formData.state || formData.pin_code) {
+      const cityStatePin = [formData.city, formData.state, formData.pin_code].filter(Boolean).join(", ");
+      doc.text(cityStatePin, 20, yPos);
+      yPos += 7;
+    }
+    if (formData.country) {
+      doc.text(formData.country, 20, yPos);
+      yPos += 7;
     }
 
     // Booking details
@@ -321,6 +485,11 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
         customer_email: formData.customer_email,
         customer_phone: formData.customer_phone,
         customer_address: formData.customer_address,
+        home_address: formData.home_address,
+        city: formData.city,
+        state: formData.state,
+        country: formData.country,
+        pin_code: formData.pin_code,
         room_name: formData.room_name,
         check_in_date: formData.check_in_date,
         check_out_date: formData.check_out_date,
@@ -359,6 +528,9 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
     e.preventDefault();
 
     try {
+      // Get current logged-in staff user
+      const { data: { user } } = await supabase.auth.getUser();
+
       // Upload customer proofs
       let proofUrls = [...uploadedProofUrls];
       if (customerProofs.length > 0) {
@@ -374,6 +546,20 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
         return;
       }
 
+      // Get staff_id from staff table using user_id
+      let staffId = null;
+      if (user?.id) {
+        const { data: staffData, error: staffError } = await supabase
+          .from("staff")
+          .select("id")
+          .eq("user_id", user.id)
+          .single();
+
+        if (!staffError && staffData) {
+          staffId = staffData.id;
+        }
+      }
+
       const dataToSave = {
         room_id: formData.room_id,
         room_name: formData.room_name,
@@ -381,6 +567,11 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
         customer_email: formData.customer_email,
         customer_phone: formData.customer_phone,
         customer_address: formData.customer_address,
+        home_address: formData.home_address,
+        city: formData.city,
+        state: formData.state,
+        country: formData.country,
+        pin_code: formData.pin_code,
         check_in_date: formData.check_in_date,
         check_out_date: formData.check_out_date,
         number_of_adults: parseInt(formData.number_of_adults),
@@ -397,6 +588,12 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
         status: formData.status,
         special_requests: formData.special_requests,
         customer_proofs: proofUrls,
+        booking_type: formData.booking_type,
+        reference_id: formData.reference_id || null,
+        reference_name: formData.reference_name || null,
+        reference_details: formData.reference_details || null,
+        gst_amount: parseFloat(formData.gst_amount),
+        staff_id: staffId,
       };
 
       let savedBooking: any;
@@ -491,8 +688,8 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
 
   const totalGuests = parseInt(formData.number_of_adults || "0") + parseInt(formData.number_of_children || "0");
   const totalAmount = parseFloat(formData.total_amount || "0");
+  const gstAmount = parseFloat(formData.gst_amount || "0");
   const advancePayment = formData.advance_payment && formData.advance_payment !== "" ? parseFloat(formData.advance_payment) : 0;
-  const remainingBalance = totalAmount - advancePayment;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -531,107 +728,121 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
               </div>
             </div>
 
+            <div>
+              <Label htmlFor="customer_email">Email Address *</Label>
+              <Input
+                id="customer_email"
+                type="email"
+                value={formData.customer_email}
+                onChange={(e) => setFormData({ ...formData, customer_email: e.target.value })}
+                required
+                placeholder="customer@example.com"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="home_address">Home Address</Label>
+              <Input
+                id="home_address"
+                value={formData.home_address}
+                onChange={(e) => setFormData({ ...formData, home_address: e.target.value })}
+                placeholder="Street address, apartment, suite, etc."
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="customer_email">Email Address *</Label>
+                <Label htmlFor="city">City</Label>
                 <Input
-                  id="customer_email"
-                  type="email"
-                  value={formData.customer_email}
-                  onChange={(e) => setFormData({ ...formData, customer_email: e.target.value })}
-                  required
-                  placeholder="customer@example.com"
+                  id="city"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  placeholder="City"
                 />
               </div>
               <div>
-                <Label htmlFor="customer_address">Address</Label>
+                <Label htmlFor="state">State</Label>
                 <Input
-                  id="customer_address"
-                  value={formData.customer_address}
-                  onChange={(e) => setFormData({ ...formData, customer_address: e.target.value })}
-                  placeholder="Full address"
+                  id="state"
+                  value={formData.state}
+                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                  placeholder="State"
                 />
               </div>
             </div>
-          </div>
 
-          {/* Room Selection */}
-          <div className="space-y-4 p-4 bg-[#f9f3e8] rounded-lg border border-[#c49d71]">
-            <h3 className="font-semibold text-[#006938] text-lg">Room Selection</h3>
-
-            {!item && (
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <Label htmlFor="room_select">Add Room *</Label>
-                  <Select
-                    onValueChange={handleAddRoom}
-                    value=""
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose a room to add" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableRooms.length === 0 ? (
-                        <div className="p-2 text-sm text-gray-500">No rooms available</div>
-                      ) : (
-                        availableRooms
-                          .filter(room => !selectedRooms.find(sr => sr.id === room.id))
-                          .map((room) => (
-                            <SelectItem key={room.id} value={room.id}>
-                              {room.name} (₹{Number(room.base_price).toLocaleString()}/night)
-                            </SelectItem>
-                          ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="country">Country</Label>
+                <Input
+                  id="country"
+                  value={formData.country}
+                  onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                  placeholder="Country"
+                />
               </div>
-            )}
+              <div>
+                <Label htmlFor="pin_code">Pin Code</Label>
+                <Input
+                  id="pin_code"
+                  value={formData.pin_code}
+                  onChange={(e) => setFormData({ ...formData, pin_code: e.target.value })}
+                  placeholder="Pin code"
+                />
+              </div>
+            </div>
 
-            {/* Selected Rooms */}
-            {selectedRooms.length > 0 && (
-              <div className="space-y-2">
-                <Label>Selected Rooms ({selectedRooms.length})</Label>
-                <div className="space-y-2">
-                  {selectedRooms.map((room) => (
-                    <div
-                      key={room.id}
-                      className="flex items-center justify-between p-3 bg-white rounded-lg border border-[#006938]"
-                    >
-                      <div className="flex-1">
-                        <p className="font-semibold text-[#006938]">
-                          {room.name}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          Capacity: {room.capacity} • ₹{Number(room.base_price).toLocaleString()}/night
-                        </p>
-                      </div>
-                      {!item && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveRoom(room.id)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          Remove
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <div className="p-3 bg-[#006938] text-white rounded-lg">
-                  <p className="font-semibold">
-                    Total Room Price: ₹{roomPrice.toLocaleString()}/night
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="booking_type">Booking Type *</Label>
+                <Select
+                  value={formData.booking_type}
+                  onValueChange={(value) => setFormData({ ...formData, booking_type: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="walk-in">Walk-in</SelectItem>
+                    <SelectItem value="online">Online</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {formData.booking_type === "walk-in" && (
+              <div>
+                <Label htmlFor="reference_id">Reference (Travel Agency/Partner) - Optional</Label>
+                <Select
+                  value={formData.reference_id || undefined}
+                  onValueChange={(value) => setFormData({ ...formData, reference_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a reference (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {references.length === 0 ? (
+                      <div className="p-2 text-sm text-gray-500">No references available</div>
+                    ) : (
+                      references.map((ref) => (
+                        <SelectItem key={ref.id} value={ref.id}>
+                          {ref.name} {ref.contact_person ? `(${ref.contact_person})` : ""}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                {formData.reference_id && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    {references.find(r => r.id === formData.reference_id)?.phone &&
+                      `Phone: ${references.find(r => r.id === formData.reference_id)?.phone}`}
                   </p>
-                  <p className="text-sm mt-1">
-                    {numberOfNights} night(s) × ₹{roomPrice.toLocaleString()} = ₹{(roomPrice * numberOfNights).toLocaleString()}
-                  </p>
-                </div>
+                )}
               </div>
             )}
           </div>
-          {/* Booking Dates */}
+
+          {/* Booking Dates & Guests - MOVED ABOVE ROOM SELECTION */}
           <div className="space-y-4 p-4 bg-[#f9f3e8] rounded-lg border border-[#c49d71]">
             <h3 className="font-semibold text-[#006938] text-lg">Booking Dates & Guests</h3>
 
@@ -644,6 +855,7 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
                   value={formData.check_in_date}
                   onChange={(e) => setFormData({ ...formData, check_in_date: e.target.value })}
                   required
+                  min={new Date().toISOString().split('T')[0]}
                 />
               </div>
               <div>
@@ -654,6 +866,7 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
                   value={formData.check_out_date}
                   onChange={(e) => setFormData({ ...formData, check_out_date: e.target.value })}
                   required
+                  min={formData.check_in_date || new Date().toISOString().split('T')[0]}
                 />
               </div>
               <div>
@@ -698,6 +911,111 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
                 </span>
               </p>
             </div>
+          </div>
+
+          {/* Room Selection */}
+          <div className="space-y-4 p-4 bg-[#f9f3e8] rounded-lg border border-[#c49d71]">
+            <h3 className="font-semibold text-[#006938] text-lg">Room Selection</h3>
+            {!formData.check_in_date || !formData.check_out_date ? (
+              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-800">
+                  ⚠️ Please select check-in and check-out dates first to see available rooms.
+                </p>
+              </div>
+            ) : null}
+
+            {!item && (
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <Label htmlFor="room_select">Add Room *</Label>
+                  <Select
+                    onValueChange={handleAddRoom}
+                    value=""
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a room to add" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableRooms.length === 0 ? (
+                        <div className="p-2 text-sm text-gray-500">No rooms available</div>
+                      ) : (
+                        (() => {
+                          const numberOfAdults = parseInt(formData.number_of_adults || "0");
+                          const filteredRooms = availableRooms
+                            .filter(room => !selectedRooms.find(sr => sr.id === room.id))
+                            .filter(room => room.capacity >= numberOfAdults); // Filter by capacity
+
+                          if (filteredRooms.length === 0) {
+                            return (
+                              <div className="p-2 text-sm text-gray-500">
+                                No rooms available for {numberOfAdults} adult(s)
+                              </div>
+                            );
+                          }
+
+                          return filteredRooms.map((room) => (
+                            <SelectItem key={room.id} value={room.id}>
+                              {room.name} - Capacity: {room.capacity} (₹{Number(room.base_price).toLocaleString()}/night)
+                            </SelectItem>
+                          ));
+                        })()
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            {/* Selected Rooms */}
+            {selectedRooms.length > 0 && (
+              <div className="space-y-2">
+                <Label>Selected Rooms ({selectedRooms.length})</Label>
+                <div className="space-y-2">
+                  {selectedRooms.map((room) => (
+                    <div
+                      key={room.id}
+                      className="flex items-center justify-between p-3 bg-white rounded-lg border border-[#006938]"
+                    >
+                      <div className="flex-1">
+                        <p className="font-semibold text-[#006938]">
+                          {room.name}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          Capacity: {room.capacity} • ₹{Number(room.base_price).toLocaleString()}/night
+                        </p>
+                      </div>
+                      {!item && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveRoom(room.id)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div className="p-3 bg-[#006938] text-white rounded-lg space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm opacity-90">Per Night Rate:</span>
+                    <span className="font-semibold">₹{roomPrice.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm opacity-90">Number of Nights:</span>
+                    <span className="font-semibold">{numberOfNights}</span>
+                  </div>
+                  <div className="border-t border-white/30 pt-2 mt-2">
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold">Total Amount:</span>
+                      <span className="font-bold text-lg">₹{(roomPrice * numberOfNights).toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Customer ID Proofs Upload */}
@@ -766,7 +1084,7 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
           <div className="space-y-4 p-4 bg-[#f9f3e8] rounded-lg border border-[#c49d71]">
             <h3 className="font-semibold text-[#006938] text-lg">Payment Details</h3>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-4 gap-4">
               <div>
                 <Label htmlFor="discount_amount">Discount Amount (₹)</Label>
                 <Input
@@ -785,6 +1103,18 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
                   value={`₹${parseFloat(formData.total_amount || "0").toFixed(2)}`}
                   disabled
                   className="bg-gray-100 font-semibold"
+                />
+              </div>
+              <div>
+                <Label htmlFor="gst_amount">GST Amount (₹) - Optional</Label>
+                <Input
+                  id="gst_amount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.gst_amount}
+                  onChange={(e) => setFormData({ ...formData, gst_amount: e.target.value })}
+                  placeholder="0.00"
                 />
               </div>
               <div>
@@ -815,9 +1145,19 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
                     <span className="font-semibold text-red-600">-₹{parseFloat(formData.discount_amount || "0").toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                   </div>
                 )}
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Base Amount:</span>
+                  <span className="font-semibold">₹{totalAmount.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                </div>
+                {parseFloat(formData.gst_amount || "0") > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">GST:</span>
+                    <span className="font-semibold">₹{parseFloat(formData.gst_amount || "0").toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                  </div>
+                )}
                 <div className="flex justify-between pt-2 border-t border-gray-200">
-                  <span className="text-gray-700 font-semibold">Total Amount:</span>
-                  <span className="font-bold text-[#006938]">₹{totalAmount.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                  <span className="text-gray-700 font-semibold">Total with GST:</span>
+                  <span className="font-bold text-[#006938]">₹{(totalAmount + parseFloat(formData.gst_amount || "0")).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                 </div>
                 {advancePayment > 0 && (
                   <>
@@ -827,7 +1167,7 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
                     </div>
                     <div className="flex justify-between pt-2 border-t border-[#c49d71]">
                       <span className="text-gray-700 font-semibold">Remaining Balance:</span>
-                      <span className="font-bold text-lg text-[#c49d71]">₹{remainingBalance.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                      <span className="font-bold text-lg text-[#c49d71]">₹{((totalAmount + parseFloat(formData.gst_amount || "0")) - advancePayment).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                     </div>
                   </>
                 )}

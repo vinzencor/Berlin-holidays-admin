@@ -18,6 +18,7 @@ import {
   Users,
   TrendingUp,
   Building2,
+  Receipt,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -33,12 +34,16 @@ interface AdminLayoutProps {
 // All navigation items for super admin
 const allNavigationItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["super_admin", "staff"] },
+  { id: "pricing-calendar", label: "Pricing Calendar", icon: Calendar, roles: ["super_admin"] },
   { id: "bookings", label: "Bookings", icon: Calendar, roles: ["super_admin", "staff"] },
   { id: "pms", label: "Invoices", icon: FileText, roles: ["super_admin", "staff"] },
-  { id: "availability", label: "Room Availability", icon: Calendar, roles: ["super_admin", "staff"] },
+  // { id: "availability", label: "Room Availability", icon: Calendar, roles: ["super_admin", "staff"] },
+  { id: "references", label: "References", icon: Users, roles: ["super_admin"] },
+  { id: "expenses", label: "Expenses", icon: Receipt, roles: ["super_admin"] },
+  { id: "reports", label: "Reports & Analytics", icon: TrendingUp, roles: ["super_admin"] },
   { id: "staff", label: "Staff Management", icon: Users, roles: ["super_admin"] },
   { id: "rms", label: "Revenue Management", icon: TrendingUp, roles: ["super_admin"] },
-  { id: "room-types", label: "Room Types", icon: Home, roles: ["super_admin"] },
+  { id: "rooms", label: "Rooms", icon: Home, roles: ["super_admin"] },
   { id: "pricing-plans", label: "Pricing Plans", icon: DollarSign, roles: ["super_admin"] },
   // { id: "rate-plans", label: "Rate Plans", icon: Percent, roles: ["super_admin"] },
   { id: "services", label: "Services", icon: Settings, roles: ["super_admin"] },

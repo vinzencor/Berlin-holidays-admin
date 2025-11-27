@@ -3,10 +3,12 @@ import { supabase } from "@/lib/supabase";
 import { DataTable } from "../DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { BookingDialog } from "../dialogs/BookingDialog";
 import { BookingSettlementModal } from "@/components/dashboard/BookingSettlementModal";
-import { Download, DollarSign } from "lucide-react";
+import { Download, DollarSign, Calendar } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -17,13 +19,24 @@ export const BookingsSection = () => {
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [settlementOpen, setSettlementOpen] = useState(false);
   const [settlementBooking, setSettlementBooking] = useState<any>(null);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   const fetchData = async () => {
     setIsLoading(true);
-    const { data: bookings, error } = await supabase
+    let query = supabase
       .from("bookings")
-      .select("*")
-      .order("created_at", { ascending: false});
+      .select("*");
+
+    // Apply date filters if set
+    if (startDate) {
+      query = query.gte("check_in_date", startDate);
+    }
+    if (endDate) {
+      query = query.lte("check_out_date", endDate);
+    }
+
+    const { data: bookings, error } = await query.order("created_at", { ascending: false});
 
     if (error) {
       toast.error("Failed to fetch bookings");
@@ -36,7 +49,7 @@ export const BookingsSection = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [startDate, endDate]);
 
   const handleAdd = () => {
     setSelectedItem(null);
@@ -284,6 +297,43 @@ export const BookingsSection = () => {
 
   return (
     <>
+      <div className="mb-4 flex gap-4 items-end">
+        <div className="flex-1">
+          <Label htmlFor="start-date" className="flex items-center gap-2">
+            <Calendar className="w-4 h-4" />
+            Start Date
+          </Label>
+          <Input
+            id="start-date"
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="mt-1"
+          />
+        </div>
+        <div className="flex-1">
+          <Label htmlFor="end-date" className="flex items-center gap-2">
+            <Calendar className="w-4 h-4" />
+            End Date
+          </Label>
+          <Input
+            id="end-date"
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="mt-1"
+          />
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => {
+            setStartDate("");
+            setEndDate("");
+          }}
+        >
+          Clear Filters
+        </Button>
+      </div>
       <DataTable
         title="Bookings"
         data={data}
