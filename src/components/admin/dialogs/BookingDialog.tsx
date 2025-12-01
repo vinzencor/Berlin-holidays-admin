@@ -33,7 +33,9 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
     country: "",
     pin_code: "",
     check_in_date: "",
+    check_in_time: "14:00",
     check_out_date: "",
+    check_out_time: "12:00",
     number_of_adults: "2",
     number_of_children: "0",
     total_amount: "",
@@ -136,24 +138,34 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
   // Fetch booked dates for availability checking
   useEffect(() => {
     const fetchBookedDates = async () => {
-      if (!formData.check_in_date) return;
+      if (!formData.check_in_date || !formData.check_out_date) return;
 
       try {
         const { data: bookings, error } = await supabase
           .from("bookings")
-          .select("check_in_date, check_out_date, room_id")
+          .select("check_in_date, check_in_time, check_out_date, check_out_time, room_id")
           .neq("status", "cancelled");
 
         if (error) throw error;
 
         const bookedDatesList: string[] = [];
         bookings?.forEach((booking) => {
-          const checkIn = new Date(booking.check_in_date);
-          const checkOut = new Date(booking.check_out_date);
-          const dates = eachDayOfInterval({ start: checkIn, end: checkOut });
-          dates.forEach((date) => {
-            bookedDatesList.push(formatDate(date, "yyyy-MM-dd"));
-          });
+          // Create check-in and check-out datetimes
+          const checkInDateTime = new Date(`${booking.check_in_date}T${booking.check_in_time || '14:00'}`);
+          const checkOutDateTime = new Date(`${booking.check_out_date}T${booking.check_out_time || '12:00'}`);
+
+          // Create proposed check-in and check-out datetimes
+          const proposedCheckIn = new Date(`${formData.check_in_date}T${formData.check_in_time || '14:00'}`);
+          const proposedCheckOut = new Date(`${formData.check_out_date}T${formData.check_out_time || '12:00'}`);
+
+          // Check for overlap: booking overlaps if it starts before proposed ends AND ends after proposed starts
+          if (checkInDateTime < proposedCheckOut && checkOutDateTime > proposedCheckIn) {
+            // If there's an overlap, mark all dates in the booking period as booked
+            const dates = eachDayOfInterval({ start: checkInDateTime, end: checkOutDateTime });
+            dates.forEach((date) => {
+              bookedDatesList.push(formatDate(date, "yyyy-MM-dd"));
+            });
+          }
         });
 
         setBookedDates(bookedDatesList);
@@ -165,7 +177,7 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
     if (open) {
       fetchBookedDates();
     }
-  }, [open, formData.check_in_date]);
+  }, [open, formData.check_in_date, formData.check_out_date, formData.check_in_time, formData.check_out_time]);
 
   // Calculate number of nights when dates change (FIXED: check-in to check-out = nights between)
   useEffect(() => {
@@ -225,7 +237,9 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
         country: item.country || "",
         pin_code: item.pin_code || "",
         check_in_date: item.check_in_date || "",
+        check_in_time: item.check_in_time || "14:00",
         check_out_date: item.check_out_date || "",
+        check_out_time: item.check_out_time || "12:00",
         number_of_adults: item.number_of_adults?.toString() || "2",
         number_of_children: item.number_of_children?.toString() || "0",
         total_amount: item.total_amount || "",
@@ -258,7 +272,9 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
         country: "",
         pin_code: "",
         check_in_date: "",
+        check_in_time: "14:00",
         check_out_date: "",
+        check_out_time: "12:00",
         number_of_adults: "2",
         number_of_children: "0",
         total_amount: "",
@@ -432,8 +448,8 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
     doc.setFontSize(10);
     doc.setTextColor(0, 0, 0);
     doc.text(`Room: ${formData.room_name}`, 20, 125);
-    doc.text(`Check-in: ${formData.check_in_date}`, 20, 132);
-    doc.text(`Check-out: ${formData.check_out_date}`, 20, 139);
+    doc.text(`Check-in: ${formData.check_in_date} at ${formData.check_in_time}`, 20, 132);
+    doc.text(`Check-out: ${formData.check_out_date} at ${formData.check_out_time}`, 20, 139);
     doc.text(`Number of Nights: ${numberOfNights}`, 20, 146);
     doc.text(`Guests: ${formData.number_of_adults} Adults, ${formData.number_of_children} Children`, 20, 153);
     doc.text(`Payment Method: ${formData.payment_method.toUpperCase()}`, 20, 160);
@@ -492,7 +508,9 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
         pin_code: formData.pin_code,
         room_name: formData.room_name,
         check_in_date: formData.check_in_date,
+        check_in_time: formData.check_in_time,
         check_out_date: formData.check_out_date,
+        check_out_time: formData.check_out_time,
         number_of_nights: numberOfNights,
         base_amount: roomPrice * numberOfNights,
         discount_amount: parseFloat(formData.discount_amount) || 0,
@@ -573,7 +591,9 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
         country: formData.country,
         pin_code: formData.pin_code,
         check_in_date: formData.check_in_date,
+        check_in_time: formData.check_in_time,
         check_out_date: formData.check_out_date,
+        check_out_time: formData.check_out_time,
         number_of_adults: parseInt(formData.number_of_adults),
         number_of_children: parseInt(formData.number_of_children),
         // total_guests is a generated column - don't insert it
@@ -846,7 +866,7 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
           <div className="space-y-4 p-4 bg-[#f9f3e8] rounded-lg border border-[#c49d71]">
             <h3 className="font-semibold text-[#006938] text-lg">Booking Dates & Guests</h3>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="check_in_date">Check-in Date *</Label>
                 <Input
@@ -859,6 +879,19 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
                 />
               </div>
               <div>
+                <Label htmlFor="check_in_time">Check-in Time *</Label>
+                <Input
+                  id="check_in_time"
+                  type="time"
+                  value={formData.check_in_time}
+                  onChange={(e) => setFormData({ ...formData, check_in_time: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
                 <Label htmlFor="check_out_date">Check-out Date *</Label>
                 <Input
                   id="check_out_date"
@@ -869,6 +902,19 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
                   min={formData.check_in_date || new Date().toISOString().split('T')[0]}
                 />
               </div>
+              <div>
+                <Label htmlFor="check_out_time">Check-out Time *</Label>
+                <Input
+                  id="check_out_time"
+                  type="time"
+                  value={formData.check_out_time}
+                  onChange={(e) => setFormData({ ...formData, check_out_time: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
               <div>
                 <Label>Number of Nights</Label>
                 <Input
