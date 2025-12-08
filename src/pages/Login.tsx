@@ -48,7 +48,7 @@ export default function Login() {
           {/* LOGO AREA */}
           <div className="mx-auto w-20 h-20 rounded-full overflow-hidden flex items-center justify-center bg-white shadow-md">
             <img 
-              src="/public/images/Berlin_logo.png"
+              src="/BERL logo .png"
               alt="Berlin Holidays Logo"
               className="w-full h-full object-cover"
             />

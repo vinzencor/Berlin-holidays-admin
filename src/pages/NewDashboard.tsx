@@ -69,14 +69,23 @@ const NewDashboard = () => {
           .from("bookings")
           .select("*");
 
-        if (bookingsError) throw bookingsError;
+        if (bookingsError) {
+          console.error("Error fetching bookings:", bookingsError);
+          throw bookingsError;
+        }
 
         // Get all room types (each room type is a unique room)
         const { data: roomTypes, error: roomTypesError } = await supabase
           .from("room_types")
-          .select("id, is_active");
+          .select("id, is_active, status");
 
-        if (roomTypesError) throw roomTypesError;
+        if (roomTypesError) {
+          console.error("Error fetching room types:", roomTypesError);
+          throw roomTypesError;
+        }
+
+        console.log("Fetched bookings:", bookings);
+        console.log("Fetched room types:", roomTypes);
 
         // Calculate total bookings (active reservations - not cancelled or checked-out)
         const activeBookings = bookings?.filter(
@@ -89,21 +98,33 @@ const NewDashboard = () => {
           0
         ) || 0;
 
-        // Calculate current guests (checked-in bookings)
+        // Calculate current guests (checked-in bookings only)
         const checkedInBookings = bookings?.filter(
           (b) => b.status === "checked-in"
         ) || [];
         const currentGuests = checkedInBookings.reduce(
-          (sum, b) => sum + (b.total_guests || 0),
+          (sum, b) => sum + (parseInt(b.total_guests) || 0),
           0
         );
 
         // Calculate available rooms (each room type is one room)
-        const totalRooms = roomTypes?.filter(rt => rt.is_active).length || 0;
+        // Only count rooms that are active and not in maintenance
+        const totalRooms = roomTypes?.filter(
+          rt => rt.is_active && (!rt.status || rt.status !== "maintenance")
+        ).length || 0;
 
         // Count booked rooms (active bookings)
         const bookedRooms = activeBookings.length;
         const availableRooms = totalRooms - bookedRooms;
+
+        console.log("Stats calculated:", {
+          totalBookings: activeBookings.length,
+          totalRevenue,
+          currentGuests,
+          totalRooms,
+          bookedRooms,
+          availableRooms: Math.max(0, availableRooms),
+        });
 
         setStats({
           totalBookings: activeBookings.length,
@@ -118,20 +139,34 @@ const NewDashboard = () => {
 
     fetchStats();
 
-    // Set up real-time subscription for bookings
-    const subscription = supabase
+    // Set up real-time subscription for bookings and room types
+    const bookingsSubscription = supabase
       .channel("bookings_changes")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "bookings" },
         () => {
+          console.log("Bookings changed, refreshing stats...");
+          fetchStats();
+        }
+      )
+      .subscribe();
+
+    const roomTypesSubscription = supabase
+      .channel("room_types_changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "room_types" },
+        () => {
+          console.log("Room types changed, refreshing stats...");
           fetchStats();
         }
       )
       .subscribe();
 
     return () => {
-      subscription.unsubscribe();
+      bookingsSubscription.unsubscribe();
+      roomTypesSubscription.unsubscribe();
     };
   }, []);
 

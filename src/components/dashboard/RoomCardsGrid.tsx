@@ -30,6 +30,7 @@ export const RoomCardsGrid = ({ onRoomClick }: RoomCardsGridProps) => {
   const [loading, setLoading] = useState(true);
   const [selectedRoom, setSelectedRoom] = useState<RoomType | null>(null);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
   useEffect(() => {
     fetchRooms();
@@ -99,6 +100,18 @@ export const RoomCardsGrid = ({ onRoomClick }: RoomCardsGridProps) => {
     }
   };
 
+  // Filter rooms based on selected status
+  const filteredRooms = statusFilter
+    ? rooms.filter((room) => (room.status || "available") === statusFilter)
+    : rooms;
+
+  // Count rooms by status
+  const statusCounts = {
+    available: rooms.filter((r) => (r.status || "available") === "available").length,
+    booked: rooms.filter((r) => r.status === "booked").length,
+    maintenance: rooms.filter((r) => r.status === "maintenance").length,
+  };
+
   if (loading) {
     return (
       <div className="text-center py-8">
@@ -112,14 +125,55 @@ export const RoomCardsGrid = ({ onRoomClick }: RoomCardsGridProps) => {
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">All Rooms</h2>
         <div className="flex gap-2">
-          <Badge className="bg-green-600">Available</Badge>
-          <Badge className="bg-yellow-600">Booked</Badge>
-          <Badge className="bg-red-600">Maintenance</Badge>
+          <Badge
+            className={`cursor-pointer transition-all ${
+              statusFilter === "available"
+                ? "bg-green-700 ring-2 ring-green-400"
+                : "bg-green-600 hover:bg-green-700"
+            }`}
+            onClick={() => setStatusFilter(statusFilter === "available" ? null : "available")}
+          >
+            Available ({statusCounts.available})
+          </Badge>
+          <Badge
+            className={`cursor-pointer transition-all ${
+              statusFilter === "booked"
+                ? "bg-yellow-700 ring-2 ring-yellow-400"
+                : "bg-yellow-600 hover:bg-yellow-700"
+            }`}
+            onClick={() => setStatusFilter(statusFilter === "booked" ? null : "booked")}
+          >
+            Booked ({statusCounts.booked})
+          </Badge>
+          <Badge
+            className={`cursor-pointer transition-all ${
+              statusFilter === "maintenance"
+                ? "bg-red-700 ring-2 ring-red-400"
+                : "bg-red-600 hover:bg-red-700"
+            }`}
+            onClick={() => setStatusFilter(statusFilter === "maintenance" ? null : "maintenance")}
+          >
+            Maintenance ({statusCounts.maintenance})
+          </Badge>
         </div>
       </div>
 
+      {statusFilter && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span>
+            Showing {filteredRooms.length} {statusFilter} room{filteredRooms.length !== 1 ? "s" : ""}
+          </span>
+          <button
+            onClick={() => setStatusFilter(null)}
+            className="text-primary hover:underline"
+          >
+            Clear filter
+          </button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {rooms.map((room, index) => (
+        {filteredRooms.map((room, index) => (
           <motion.div
             key={room.id}
             initial={{ opacity: 0, y: 20 }}
@@ -206,10 +260,14 @@ export const RoomCardsGrid = ({ onRoomClick }: RoomCardsGridProps) => {
         ))}
       </div>
 
-      {rooms.length === 0 && (
+      {filteredRooms.length === 0 && (
         <div className="text-center py-12">
           <Home className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground">No rooms found</p>
+          <p className="text-muted-foreground">
+            {statusFilter
+              ? `No ${statusFilter} rooms found`
+              : "No rooms found"}
+          </p>
         </div>
       )}
 
