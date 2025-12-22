@@ -33,9 +33,9 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
     country: "",
     pin_code: "",
     check_in_date: "",
-    check_in_time: "14:00",
+    check_in_time: "13:00",
     check_out_date: "",
-    check_out_time: "12:00",
+    check_out_time: "11:00",
     number_of_adults: "2",
     number_of_children: "0",
     total_amount: "",
@@ -212,15 +212,16 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
 
   // Calculate total amount when room price or discount changes (GST is now editable)
   useEffect(() => {
-    if (roomPrice > 0) {
+    if (roomPrice > 0 && numberOfNights > 0) {
       const discount = parseFloat(formData.discount_amount) || 0;
-      const baseAmount = roomPrice - discount;
+      const subtotal = roomPrice * numberOfNights; // roomPrice is per-night average
+      const baseAmount = subtotal - discount;
       setFormData(prev => ({
         ...prev,
         total_amount: baseAmount.toFixed(2),
       }));
     }
-  }, [roomPrice, formData.discount_amount]);
+  }, [roomPrice, formData.discount_amount, numberOfNights]);
 
   useEffect(() => {
     if (item) {
@@ -255,6 +256,10 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
         reference_details: item.reference_details || "",
         gst_amount: item.gst_amount || "0",
       });
+      // Set room price from existing booking
+      if (item.room_price) {
+        setRoomPrice(parseFloat(item.room_price));
+      }
       if (item.customer_proofs) {
         setUploadedProofUrls(item.customer_proofs);
       }
@@ -323,10 +328,12 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
           totalPerNightPrice += roomPerNightPrice;
         }
         setRoomPrice(totalPerNightPrice); // Store combined per-night rate
+        console.log('Room price calculated with dates:', totalPerNightPrice);
       } else {
         // Fallback to base price if dates not selected
         const totalPerNightPrice = updatedRooms.reduce((sum, room) => sum + Number(room.base_price), 0);
         setRoomPrice(totalPerNightPrice);
+        console.log('Room price set to base price:', totalPerNightPrice);
       }
     }
   };

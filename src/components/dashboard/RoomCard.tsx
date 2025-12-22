@@ -187,6 +187,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Home, User, Calendar, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 
 interface RoomCardProps {
   room: RoomTypeWithBookings;
@@ -204,6 +206,29 @@ export const RoomCard = ({
   const bookedCount = room.booked_count || 0;
   const availableCount = room.available_count || room.total_rooms;
   const totalRooms = room.total_rooms;
+  const [todayPrice, setTodayPrice] = useState<number>(parseFloat(room.base_price));
+
+  // Fetch today's date-specific pricing
+  useEffect(() => {
+    const fetchTodayPrice = async () => {
+      const today = new Date().toISOString().split('T')[0];
+
+      const { data, error } = await supabase
+        .from("date_specific_pricing")
+        .select("price")
+        .eq("room_type_id", room.id)
+        .eq("date", today)
+        .single();
+
+      if (!error && data) {
+        setTodayPrice(parseFloat(data.price));
+      } else {
+        setTodayPrice(parseFloat(room.base_price));
+      }
+    };
+
+    fetchTodayPrice();
+  }, [room.id, room.base_price]);
 
   // Determine status based on availability
   const getStatus = () => {
@@ -317,9 +342,15 @@ export const RoomCard = ({
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Rate:</span>
+              <span className="text-muted-foreground">Guests:</span>
+              <span className="font-semibold text-[hsl(var(--secondary))]">
+                {room.capacity || 2}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Today's Rate:</span>
               <span className="font-semibold text-primary">
-                ₹{parseFloat(room.base_price).toLocaleString()}/night
+                ₹{todayPrice.toLocaleString()}/night
               </span>
             </div>
           </div>

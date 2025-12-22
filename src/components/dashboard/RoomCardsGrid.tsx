@@ -19,6 +19,7 @@ interface RoomType {
   size: string | null;
   status: string;
   maintenance_until: string | null;
+  todayPrice?: number; // Add today's price field
 }
 
 interface RoomCardsGridProps {
@@ -65,7 +66,23 @@ export const RoomCardsGrid = ({ onRoomClick }: RoomCardsGridProps) => {
 
       if (roomTypesError) throw roomTypesError;
 
-      setRooms(roomTypesData || []);
+      // Fetch today's date-specific pricing for all rooms
+      const today = new Date().toISOString().split('T')[0];
+      const { data: pricingData } = await supabase
+        .from("date_specific_pricing")
+        .select("room_type_id, price")
+        .eq("date", today);
+
+      // Map pricing to rooms
+      const roomsWithPricing = (roomTypesData || []).map(room => {
+        const todayPricing = pricingData?.find(p => p.room_type_id === room.id);
+        return {
+          ...room,
+          todayPrice: todayPricing ? parseFloat(todayPricing.price) : room.base_price
+        };
+      });
+
+      setRooms(roomsWithPricing);
     } catch (error: any) {
       console.error("Error fetching rooms:", error);
       toast.error("Failed to load rooms");
@@ -238,8 +255,13 @@ export const RoomCardsGrid = ({ onRoomClick }: RoomCardsGridProps) => {
 
                   <div className="pt-2 border-t">
                     <p className="text-lg font-bold text-[#006938]">
-                      ₹{Number(room.base_price).toLocaleString('en-IN')}/night
+                      ₹{Number(room.todayPrice || room.base_price).toLocaleString('en-IN')}/night
                     </p>
+                    {room.todayPrice && room.todayPrice !== room.base_price && (
+                      <p className="text-xs text-muted-foreground line-through">
+                        Base: ₹{Number(room.base_price).toLocaleString('en-IN')}
+                      </p>
+                    )}
                   </div>
 
                   {/* Maintenance Info */}

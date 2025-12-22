@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { BookingDialog } from "../dialogs/BookingDialog";
 import { BookingSettlementModal } from "@/components/dashboard/BookingSettlementModal";
-import { Download, DollarSign, Calendar } from "lucide-react";
+import { ExtendBookingDialog } from "../dialogs/ExtendBookingDialog";
+import { Download, DollarSign, Calendar, Clock } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -19,6 +20,8 @@ export const BookingsSection = () => {
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [settlementOpen, setSettlementOpen] = useState(false);
   const [settlementBooking, setSettlementBooking] = useState<any>(null);
+  const [extendOpen, setExtendOpen] = useState(false);
+  const [extendBooking, setExtendBooking] = useState<any>(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
@@ -198,6 +201,11 @@ export const BookingsSection = () => {
     setSettlementOpen(true);
   };
 
+  const handleExtendBooking = (booking: any) => {
+    setExtendBooking(booking);
+    setExtendOpen(true);
+  };
+
   const columns = [
     { key: "customer_name", label: "Customer" },
     { key: "customer_email", label: "Email" },
@@ -206,12 +214,27 @@ export const BookingsSection = () => {
     {
       key: "check_in_date",
       label: "Check-in",
-      render: (value: string) => new Date(value).toLocaleDateString(),
+      render: (value: string, row: any) => (
+        <div className="flex flex-col">
+          <span>{new Date(value).toLocaleDateString()}</span>
+          <span className="text-xs text-muted-foreground">{row.check_in_time || "13:00"}</span>
+        </div>
+      ),
     },
     {
       key: "check_out_date",
       label: "Check-out",
-      render: (value: string) => new Date(value).toLocaleDateString(),
+      render: (value: string, row: any) => (
+        <div className="flex flex-col">
+          <span>{new Date(value).toLocaleDateString()}</span>
+          <span className="text-xs text-muted-foreground">{row.check_out_time || "11:00"}</span>
+          {row.extended_until && (
+            <span className="text-xs text-orange-600 font-semibold">
+              Extended: {new Date(row.extended_until).toLocaleString()}
+            </span>
+          )}
+        </div>
+      ),
     },
     {
       key: "total_amount",
@@ -269,7 +292,7 @@ export const BookingsSection = () => {
       key: "actions",
       label: "Actions",
       render: (_: any, row: any) => (
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button
             size="sm"
             variant="outline"
@@ -288,6 +311,17 @@ export const BookingsSection = () => {
             >
               <DollarSign className="w-4 h-4" />
               Settle
+            </Button>
+          )}
+          {(row.status === "confirmed" || row.status === "checked-in") && (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => handleExtendBooking(row)}
+              className="flex items-center gap-1"
+            >
+              <Clock className="w-4 h-4" />
+              Extend
             </Button>
           )}
         </div>
@@ -354,6 +388,12 @@ export const BookingsSection = () => {
         open={settlementOpen}
         onOpenChange={setSettlementOpen}
         booking={settlementBooking}
+        onSuccess={fetchData}
+      />
+      <ExtendBookingDialog
+        open={extendOpen}
+        onOpenChange={setExtendOpen}
+        booking={extendBooking}
         onSuccess={fetchData}
       />
     </>

@@ -46,7 +46,7 @@ const allNavigationItems = [
   { id: "rooms", label: "Rooms", icon: Home, roles: ["super_admin"] },
   { id: "pricing-plans", label: "Pricing Plans", icon: DollarSign, roles: ["super_admin"] },
   // { id: "rate-plans", label: "Rate Plans", icon: Percent, roles: ["super_admin"] },
-  { id: "services", label: "Services", icon: Settings, roles: ["super_admin"] },
+  // { id: "services", label: "Services", icon: Settings, roles: ["super_admin"] },
 ];
 
 export const AdminLayout = ({ children, currentSection, onSectionChange }: AdminLayoutProps) => {
