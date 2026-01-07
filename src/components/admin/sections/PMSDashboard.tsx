@@ -7,7 +7,11 @@ import { FrontDeskSection } from "./pms/FrontDeskSection";
 import { InvoicesSection } from "./pms/InvoicesSection";
 import { StaffTasksSection } from "./pms/StaffTasksSection";
 
-export const PMSDashboard = () => {
+interface PMSDashboardProps {
+  userRole?: string;
+}
+
+export const PMSDashboard = ({ userRole = "staff" }: PMSDashboardProps) => {
   return (
     <div className="p-6">
       <div className="flex items-center gap-3 mb-6">
@@ -59,7 +63,7 @@ export const PMSDashboard = () => {
         </TabsContent>
 
         <TabsContent value="invoices">
-          <InvoicesSection />
+          <InvoicesSection userRole={userRole} />
         </TabsContent>
 
         <TabsContent value="tasks">

@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
@@ -23,7 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -51,47 +51,9 @@ const allNavigationItems = [
 
 export const AdminLayout = ({ children, currentSection, onSectionChange }: AdminLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [userRole, setUserRole] = useState<string>("staff");
+  const { userRole } = useUserRole();
   const { logout, user } = useAuth();
   const navigate = useNavigate();
-
-  // Super admin allowlist so privileged users keep full access even if staff row is missing
-  const superAdminEmails = useMemo(() => [
-    "berlinholidays@gmail.com",
-    "rahulpradeepan77@gmail.com",
-  ], []);
-
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      // 1) Auth metadata hint
-      const metadataRole = user?.user_metadata?.access_role as string | undefined;
-      if (metadataRole === "super_admin") {
-        setUserRole("super_admin");
-        return;
-      }
-
-      // 2) Staff table lookup
-      if (user) {
-        const { data, error } = await supabase
-          .from("staff")
-          .select("access_role")
-          .eq("user_id", user.id)
-          .single();
-
-        if (data && !error) {
-          setUserRole(data.access_role || "staff");
-          return;
-        }
-      }
-
-      // 3) Email allowlist fallback for super admins without staff linkage
-      if (user?.email && superAdminEmails.includes(user.email.toLowerCase())) {
-        setUserRole("super_admin");
-      }
-    };
-
-    fetchUserRole();
-  }, [user, superAdminEmails]);
 
   // Filter navigation items based on user role
   const navigationItems = allNavigationItems.filter((item) =>

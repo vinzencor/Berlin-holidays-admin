@@ -13,12 +13,14 @@ import { ReportsSection } from "@/components/admin/sections/ReportsSection";
 import { ExpensesSection } from "@/components/admin/sections/ExpensesSection";
 import { PricingCalendarSection } from "@/components/admin/sections/PricingCalendarSection";
 import ReferencesSection from "@/components/admin/sections/ReferencesSection";
+import { useUserRole } from "@/hooks/useUserRole";
 
 // Import the new calendar-based dashboard
 import NewDashboard from "./NewDashboard";
 
 const Admin = () => {
   const [currentSection, setCurrentSection] = useState("dashboard");
+  const { userRole } = useUserRole();
 
   const renderSection = () => {
     switch (currentSection) {
@@ -31,13 +33,13 @@ const Admin = () => {
           </div>
         );
       case "pms":
-        return <PMSDashboard />;
+        return <PMSDashboard userRole={userRole} />;
       case "rms":
         return <RMSDashboard />;
       case "bookings":
         return (
           <div className="p-6">
-            <BookingsSection />
+            <BookingsSection userRole={userRole} />
           </div>
         );
       case "availability":

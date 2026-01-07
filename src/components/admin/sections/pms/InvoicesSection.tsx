@@ -12,7 +12,11 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
 
-export const InvoicesSection = () => {
+interface InvoicesSectionProps {
+  userRole?: string;
+}
+
+export const InvoicesSection = ({ userRole = "staff" }: InvoicesSectionProps) => {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -289,8 +293,8 @@ export const InvoicesSection = () => {
         data={data}
         isLoading={loading}
         onAdd={handleAdd}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
+        onEdit={userRole === "super_admin" ? handleEdit : undefined}
+        onDelete={userRole === "super_admin" ? handleDelete : undefined}
         searchPlaceholder="Search invoices..."
       />
 

@@ -13,7 +13,11 @@ import { Download, DollarSign, Calendar, Clock } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-export const BookingsSection = () => {
+interface BookingsSectionProps {
+  userRole?: string;
+}
+
+export const BookingsSection = ({ userRole = "staff" }: BookingsSectionProps) => {
   const [data, setData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -302,7 +306,7 @@ export const BookingsSection = () => {
             <Download className="w-4 h-4" />
             Invoice
           </Button>
-          {row.payment_status !== "paid" && (
+          {userRole === "super_admin" && row.payment_status !== "paid" && (
             <Button
               size="sm"
               variant="default"
@@ -313,7 +317,7 @@ export const BookingsSection = () => {
               Settle
             </Button>
           )}
-          {(row.status === "confirmed" || row.status === "checked-in") && (
+          {userRole === "super_admin" && (row.status === "confirmed" || row.status === "checked-in") && (
             <Button
               size="sm"
               variant="secondary"
@@ -373,8 +377,8 @@ export const BookingsSection = () => {
         data={data}
         columns={columns}
         onAdd={handleAdd}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
+        onEdit={userRole === "super_admin" ? handleEdit : undefined}
+        onDelete={userRole === "super_admin" ? handleDelete : undefined}
         isLoading={isLoading}
         searchPlaceholder="Search bookings..."
       />
