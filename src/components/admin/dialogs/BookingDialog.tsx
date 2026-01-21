@@ -1189,32 +1189,12 @@ export const BookingDialog = ({ open, onOpenChange, item, onSuccess }: BookingDi
               <h4 className="font-semibold text-[#006938] mb-3">Payment Summary</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Subtotal:</span>
-                  <span className="font-semibold">₹{(roomPrice * numberOfNights).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-                </div>
-                {parseFloat(formData.discount_amount || "0") > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Discount:</span>
-                    <span className="font-semibold text-red-600">-₹{parseFloat(formData.discount_amount || "0").toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-                  </div>
-                )}
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Base Amount:</span>
-                  <span className="font-semibold">₹{totalAmount.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-                </div>
-                {parseFloat(formData.gst_amount || "0") > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">GST:</span>
-                    <span className="font-semibold">₹{parseFloat(formData.gst_amount || "0").toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-                  </div>
-                )}
-                <div className="flex justify-between pt-2 border-t border-gray-200">
-                  <span className="text-gray-700 font-semibold">Total with GST:</span>
+                  <span className="text-gray-700 font-semibold">Total Price:</span>
                   <span className="font-bold text-[#006938]">₹{(totalAmount + parseFloat(formData.gst_amount || "0")).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                 </div>
                 {advancePayment > 0 && (
                   <>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between pt-2 border-t border-gray-200">
                       <span className="text-gray-600">Advance Paid:</span>
                       <span className="font-semibold text-green-600">₹{advancePayment.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                     </div>

@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface StaffDialogProps {
   open: boolean;
@@ -54,6 +55,8 @@ export const StaffDialog = ({ open, onOpenChange, staff, onSuccess }: StaffDialo
         access_role: staff.access_role || "staff",
         password: "",
         create_login: false,
+        change_password: false,
+        new_password: "",
       });
     } else {
       setFormData({
@@ -73,6 +76,8 @@ export const StaffDialog = ({ open, onOpenChange, staff, onSuccess }: StaffDialo
         access_role: "staff",
         password: "",
         create_login: false,
+        change_password: false,
+        new_password: "",
       });
     }
   }, [staff, open]);
@@ -127,6 +132,7 @@ export const StaffDialog = ({ open, onOpenChange, staff, onSuccess }: StaffDialo
       };
 
       if (staff) {
+        // Update staff member
         const { error } = await supabase
           .from("staff")
           .update(dataToSubmit)
@@ -135,11 +141,46 @@ export const StaffDialog = ({ open, onOpenChange, staff, onSuccess }: StaffDialo
         if (error) {
           toast.error("Failed to update staff member");
           console.error(error);
+          return;
+        }
+
+        // Handle password change if requested (admin only)
+        if (formData.change_password && formData.new_password && isSuperAdmin && staff.user_id) {
+          try {
+            // Try to update password using RPC function
+            const { error: rpcError } = await supabase.rpc('admin_reset_staff_password', {
+              staff_user_id: staff.user_id,
+              new_password: formData.new_password
+            });
+
+            if (rpcError) {
+              // If RPC fails, send password reset email as fallback
+              const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+                staff.email,
+                {
+                  redirectTo: `${window.location.origin}/reset-password`,
+                }
+              );
+
+              if (resetError) {
+                toast.error("Failed to change password. Please try the Reset Password button instead.");
+                console.error("Password change error:", resetError);
+              } else {
+                toast.success("Staff member updated. Password reset email sent to " + staff.email);
+              }
+            } else {
+              toast.success("Staff member and password updated successfully");
+            }
+          } catch (error: any) {
+            console.error("Error changing password:", error);
+            toast.warning("Staff member updated, but password change failed: " + error.message);
+          }
         } else {
           toast.success("Staff member updated successfully");
-          onSuccess();
-          onOpenChange(false);
         }
+
+        onSuccess();
+        onOpenChange(false);
       } else {
         const { error } = await supabase.from("staff").insert([dataToSubmit]);
 
@@ -362,6 +403,44 @@ export const StaffDialog = ({ open, onOpenChange, staff, onSuccess }: StaffDialo
                       minLength={6}
                       placeholder="Min 6 characters"
                     />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Password Change Section - Only for editing existing staff and admin only */}
+          {staff && isSuperAdmin && staff.user_id && (
+            <div className="border-t pt-4 space-y-4">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="change_password"
+                  checked={formData.change_password}
+                  onChange={(e) => setFormData({ ...formData, change_password: e.target.checked, new_password: "" })}
+                  className="h-4 w-4"
+                />
+                <Label htmlFor="change_password" className="cursor-pointer">
+                  Change password for this staff member
+                </Label>
+              </div>
+
+              {formData.change_password && (
+                <div className="pl-6">
+                  <div>
+                    <Label htmlFor="new_password">New Password *</Label>
+                    <Input
+                      id="new_password"
+                      type="password"
+                      value={formData.new_password}
+                      onChange={(e) => setFormData({ ...formData, new_password: e.target.value })}
+                      required={formData.change_password}
+                      minLength={6}
+                      placeholder="Min 6 characters"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Admin only: Change the login password for this staff member
+                    </p>
                   </div>
                 </div>
               )}

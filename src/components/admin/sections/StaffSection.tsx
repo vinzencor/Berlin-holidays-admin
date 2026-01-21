@@ -4,14 +4,16 @@ import { DataTable } from "../DataTable";
 import { toast } from "sonner";
 import { StaffDialog } from "../dialogs/StaffDialog";
 import { RoomStaffAssignmentDialog } from "../dialogs/RoomStaffAssignmentDialog";
+import { ResetStaffPasswordDialog } from "../dialogs/ResetStaffPasswordDialog";
 import { Button } from "@/components/ui/button";
-import { Users, UserPlus } from "lucide-react";
+import { Users, UserPlus, Key } from "lucide-react";
 
 export const StaffSection = () => {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false);
+  const [passwordResetDialogOpen, setPasswordResetDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
 
   const columns = [
@@ -77,6 +79,11 @@ export const StaffSection = () => {
     setAssignmentDialogOpen(true);
   };
 
+  const handleResetPassword = (item: any) => {
+    setSelectedItem(item);
+    setPasswordResetDialogOpen(true);
+  };
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
@@ -99,15 +106,26 @@ export const StaffSection = () => {
         onEdit={handleEdit}
         onDelete={handleDelete}
         customActions={(item) => (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleAssignRoom(item)}
-            className="ml-2"
-          >
-            <UserPlus className="h-4 w-4 mr-1" />
-            Assign to Room
-          </Button>
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleAssignRoom(item)}
+              className="ml-2"
+            >
+              <UserPlus className="h-4 w-4 mr-1" />
+              Assign to Room
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleResetPassword(item)}
+              className="ml-2"
+            >
+              <Key className="h-4 w-4 mr-1" />
+              Reset Password
+            </Button>
+          </>
         )}
       />
 
@@ -123,6 +141,12 @@ export const StaffSection = () => {
         onOpenChange={setAssignmentDialogOpen}
         staff={selectedItem}
         onSuccess={fetchData}
+      />
+
+      <ResetStaffPasswordDialog
+        open={passwordResetDialogOpen}
+        onOpenChange={setPasswordResetDialogOpen}
+        staff={selectedItem}
       />
     </div>
   );

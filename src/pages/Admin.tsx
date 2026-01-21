@@ -13,6 +13,7 @@ import { ReportsSection } from "@/components/admin/sections/ReportsSection";
 import { ExpensesSection } from "@/components/admin/sections/ExpensesSection";
 import { PricingCalendarSection } from "@/components/admin/sections/PricingCalendarSection";
 import ReferencesSection from "@/components/admin/sections/ReferencesSection";
+import { PasswordChangeSection } from "@/components/admin/sections/PasswordChangeSection";
 import { useUserRole } from "@/hooks/useUserRole";
 
 // Import the new calendar-based dashboard
@@ -92,6 +93,8 @@ const Admin = () => {
             <ReferencesSection />
           </div>
         );
+      case "password":
+        return <PasswordChangeSection />;
       default:
         return <NewDashboard />;
     }

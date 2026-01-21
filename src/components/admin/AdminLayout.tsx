@@ -42,6 +42,7 @@ const allNavigationItems = [
   { id: "expenses", label: "Expenses", icon: Receipt, roles: ["super_admin"] },
   { id: "reports", label: "Reports & Analytics", icon: TrendingUp, roles: ["super_admin"] },
   { id: "staff", label: "Staff Management", icon: Users, roles: ["super_admin"] },
+  { id: "password", label: "Change Password", icon: Settings, roles: ["super_admin", "staff"] },
   { id: "rms", label: "Revenue Management", icon: TrendingUp, roles: ["super_admin"] },
   { id: "rooms", label: "Rooms", icon: Home, roles: ["super_admin"] },
   { id: "pricing-plans", label: "Pricing Plans", icon: DollarSign, roles: ["super_admin"] },
