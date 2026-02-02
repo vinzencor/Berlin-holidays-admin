@@ -214,7 +214,10 @@ export const ReportsSection = () => {
     doc.text(`Report Period: ${format(new Date(startDate), 'dd MMM yyyy')} - ${format(new Date(endDate), 'dd MMM yyyy')}`, 148, 38, { align: "center" });
 
     // Add payment method filter info
-    const paymentMethodText = paymentMethodFilter === "all" ? "All Payment Methods" : paymentMethodFilter.toUpperCase();
+    let paymentMethodText = "All Payment Methods";
+    if (Array.isArray(paymentMethodFilter) && paymentMethodFilter.length > 0) {
+      paymentMethodText = paymentMethodFilter.map((m) => typeof m === 'string' ? m.toUpperCase() : '').join(", ");
+    }
     doc.text(`Payment Method: ${paymentMethodText}`, 148, 45, { align: "center" });
 
     // Summary
@@ -349,7 +352,10 @@ export const ReportsSection = () => {
     doc.text(`Report Period: ${format(new Date(startDate), 'dd MMM yyyy')} - ${format(new Date(endDate), 'dd MMM yyyy')}`, 148, 38, { align: "center" });
 
     // Add payment method filter info
-    const paymentMethodText = paymentMethodFilter === "all" ? "All Payment Methods" : paymentMethodFilter.toUpperCase();
+    let paymentMethodText = "All Payment Methods";
+    if (Array.isArray(paymentMethodFilter) && paymentMethodFilter.length > 0) {
+      paymentMethodText = paymentMethodFilter.map((m) => typeof m === 'string' ? m.toUpperCase() : '').join(", ");
+    }
     doc.text(`Payment Method: ${paymentMethodText}`, 148, 45, { align: "center" });
 
     // Summary
